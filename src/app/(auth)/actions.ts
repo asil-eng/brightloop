@@ -15,16 +15,25 @@ import {
 import { EMAIL_RE, UserError, required, safeAction, str } from "@/lib/action";
 import { appUrl, sendMail } from "@/lib/mail";
 import { setUpCompany } from "@/lib/company";
+import { clearHits, isLimited, recordHit } from "@/lib/rate-limit";
 
 const RESET_HOURS = 1;
+const LOGIN_MAX_FAILURES = 8; // per email, per 15 minutes
+const RESET_MAX_EMAILS = 5; // per email, per hour
 
 export const loginAction = safeAction(async (data) => {
   const email = required(data, "email", "Email").toLowerCase();
   const password = required(data, "password", "Password");
+  const key = `login:${email}`;
+  if (await isLimited(key, LOGIN_MAX_FAILURES, 15)) {
+    throw new UserError("Too many failed attempts. Wait 15 minutes or reset your password.");
+  }
   const user = await rootDb.user.findUnique({ where: { email } });
   if (!user?.passwordHash || !(await verifyPassword(password, user.passwordHash))) {
+    await recordHit(key);
     throw new UserError("Incorrect email or password.");
   }
+  await clearHits(key);
   if (!user.active) throw new UserError("This account has been deactivated.");
   await createSession(user.id);
   const next = str(data, "next");
@@ -70,7 +79,9 @@ export const registerCompanyAction = safeAction(async (data) => {
 export const forgotPasswordAction = safeAction(async (data) => {
   const email = required(data, "email", "Email").toLowerCase();
   const user = await rootDb.user.findUnique({ where: { email } });
-  if (user?.active) {
+  const key = `reset:${email}`;
+  if (user?.active && !(await isLimited(key, RESET_MAX_EMAILS, 60))) {
+    await recordHit(key);
     const token = randomToken();
     await rootDb.passwordResetToken.create({
       data: { tokenHash: sha256(token), userId: user.id, expiresAt: new Date(Date.now() + RESET_HOURS * 3600_000) },

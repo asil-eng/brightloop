@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { ci } from "@/lib/search";
 import type { Prisma } from "@prisma/client";
 import { requireBackoffice } from "@/lib/auth";
 import { formatMoney } from "@/lib/money";
@@ -15,7 +16,7 @@ export default async function ProductsPage({ searchParams }: { searchParams: Sea
   const q = param(sp, "q");
   const type = param(sp, "type");
   const where: Prisma.ProductWhereInput = {
-    ...(q && { name: { contains: q } }),
+    ...(q && { name: ci(q) }),
     ...(type && { type: type as Prisma.EnumProductTypeFilter["equals"] }),
   };
   const [products, total] = await Promise.all([

@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { ci } from "@/lib/search";
 import type { Prisma } from "@prisma/client";
 import { requireBackoffice } from "@/lib/auth";
 import { formatMoney } from "@/lib/money";
@@ -13,7 +14,7 @@ export default async function CustomersPage({ searchParams }: { searchParams: Se
   const page = pageOf(sp);
   const q = param(sp, "q");
   const where: Prisma.CustomerWhereInput = q
-    ? { OR: [{ name: { contains: q } }, { email: { contains: q } }, { company: { contains: q } }] }
+    ? { OR: [{ name: ci(q) }, { email: ci(q) }, { company: ci(q) }] }
     : {};
   const [customers, total] = await Promise.all([
     db.customer.findMany({

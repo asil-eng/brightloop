@@ -13,7 +13,9 @@ type SendOptions = {
   entity?: { type: string; id: string };
 };
 
-export const appUrl = () => process.env.APP_URL ?? "http://localhost:3000";
+export const appUrl = () =>
+  process.env.APP_URL ||
+  (process.env.VERCEL_PROJECT_PRODUCTION_URL ? `https://${process.env.VERCEL_PROJECT_PRODUCTION_URL}` : "http://localhost:3000");
 
 let transporter: Transporter | null = null;
 function getTransporter() {

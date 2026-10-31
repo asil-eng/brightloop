@@ -9,11 +9,12 @@
     "lint": "eslint",
     "db:migrate": "prisma migrate dev",
     "db:seed": "tsx prisma/seed.ts",
-    "db:reset": "prisma migrate reset --force --skip-seed && tsx prisma/seed.ts",
+    "db:reset": "prisma migrate reset",
     "postinstall": "prisma generate",
     "typecheck": "tsc --noEmit",
-    "test": "node -e \"require('fs').rmSync('prisma/test.db',{force:true})\" && DATABASE_URL=file:./test.db prisma migrate deploy && DATABASE_URL=file:./test.db tsx --conditions=react-server --test tests/*.test.ts",
-    "test:e2e": "playwright test"
+    "test": "DATABASE_URL=postgresql://brightloop:brightloop@localhost:5433/brightloop_test DIRECT_URL=postgresql://brightloop:brightloop@localhost:5433/brightloop_test prisma migrate deploy >/dev/null && DATABASE_URL=postgresql://brightloop:brightloop@localhost:5433/brightloop_test DIRECT_URL=postgresql://brightloop:brightloop@localhost:5433/brightloop_test tsx --conditions=react-server --test tests/*.test.ts",
+    "test:e2e": "playwright test",
+    "vercel-build": "prisma generate && prisma migrate deploy && next build"
   },
   "dependencies": {
     "@prisma/client": "^6.19.3",
@@ -44,8 +45,5 @@
     "tailwindcss": "^4",
     "tsx": "^4.23.15",
     "typescript": "^5"
-  },
-  "prisma": {
-    "seed": "tsx prisma/seed.ts"
   }
 }

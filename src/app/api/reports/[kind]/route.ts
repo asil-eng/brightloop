@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { ci } from "@/lib/search";
 import type { Prisma } from "@prisma/client";
 import { getCurrentUser } from "@/lib/auth";
 import { parseInputDate, startOfDay, toInputDate } from "@/lib/dates";
@@ -47,7 +48,7 @@ export async function GET(req: Request, { params }: { params: Promise<{ kind: st
   } else if (kind === "overdue") {
     const q = sp.get("q");
     const invoices = await db.invoice.findMany({
-      where: { status: "CONFIRMED", dueDate: { lt: today }, ...(q && { customer: { name: { contains: q } } }) },
+      where: { status: "CONFIRMED", dueDate: { lt: today }, ...(q && { customer: { name: ci(q) } }) },
       include: { customer: true },
       orderBy: { dueDate: "asc" },
       take: LIMIT,

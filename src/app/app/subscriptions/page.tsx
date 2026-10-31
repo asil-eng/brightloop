@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { ci } from "@/lib/search";
 import type { Prisma, SubscriptionStatus } from "@prisma/client";
 import { requireBackoffice } from "@/lib/auth";
 import { formatMoney } from "@/lib/money";
@@ -23,7 +24,7 @@ export default async function SubscriptionsPage({ searchParams }: { searchParams
   const to = parseInputDate(param(sp, "to"));
 
   const where: Prisma.SubscriptionWhereInput = {
-    ...(q && { OR: [{ number: { contains: q } }, { customer: { name: { contains: q } } }, { customer: { company: { contains: q } } }] }),
+    ...(q && { OR: [{ number: ci(q) }, { customer: { name: ci(q) } }, { customer: { company: ci(q) } }] }),
     ...(status && STATUSES.includes(status) && { status }),
     ...(planId && { planId }),
     ...(customerId && { customerId }),

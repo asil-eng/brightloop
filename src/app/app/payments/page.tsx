@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { ci } from "@/lib/search";
 import type { PaymentMethod, Prisma } from "@prisma/client";
 import { requireBackoffice } from "@/lib/auth";
 import { formatMoney } from "@/lib/money";
@@ -19,7 +20,7 @@ export default async function PaymentsPage({ searchParams }: { searchParams: Sea
   const from = parseInputDate(param(sp, "from"));
   const to = parseInputDate(param(sp, "to"));
   const where: Prisma.PaymentWhereInput = {
-    ...(q && { OR: [{ number: { contains: q } }, { reference: { contains: q } }, { invoice: { number: { contains: q } } }, { invoice: { customer: { name: { contains: q } } } }] }),
+    ...(q && { OR: [{ number: ci(q) }, { reference: ci(q) }, { invoice: { number: ci(q) } }, { invoice: { customer: { name: ci(q) } } }] }),
     ...(method && method in METHOD_LABEL && { method }),
     ...(customerId && { invoice: { customerId } }),
     ...((from || to) && { date: { ...(from && { gte: from }), ...(to && { lte: to }) } }),

@@ -1,13 +1,15 @@
 // Brightloop — Subscription Management System
 // All money values are stored as integers in minor units (paise/cents) to avoid rounding errors.
+// PostgreSQL in every environment (local Docker, Neon in production).
 
 generator client {
   provider = "prisma-client-js"
 }
 
 datasource db {
-  provider = "sqlite"
-  url      = env("DATABASE_URL")
+  provider  = "postgresql"
+  url       = env("DATABASE_URL") // pooled connection used by the app
+  directUrl = env("DIRECT_URL") // direct connection used for migrations
 }
 
 // ───────────── Users & auth ─────────────
@@ -534,4 +536,13 @@ model EmailLog {
 
   @@index([createdAt])
   @@index([orgId])
+}
+
+// Recent sensitive attempts (failed logins, reset requests), used for rate limiting.
+model RateLimitHit {
+  id        String   @id @default(cuid())
+  key       String // e.g. "login:ana@example.com"
+  createdAt DateTime @default(now())
+
+  @@index([key, createdAt])
 }

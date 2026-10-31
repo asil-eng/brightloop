@@ -164,3 +164,16 @@ test("customers cannot open the back office", async ({ page }) => {
   await page.goto("/app/settings");
   await expect(page).toHaveURL(/\/portal$/);
 });
+
+test("repeated wrong passwords lock the login for a while", async ({ page }) => {
+  const email = `nobody.${stamp}@example.com`;
+  await page.goto("/login");
+  await page.getByLabel("Email").fill(email);
+  for (let i = 0; i < 8; i++) {
+    await page.getByLabel("Password", { exact: true }).fill(`Wrong#${i}xyz`);
+    await page.getByRole("button", { name: "Log in" }).click();
+    await expect(alert(page)).toContainText("Incorrect email or password");
+  }
+  await page.getByRole("button", { name: "Log in" }).click();
+  await expect(alert(page)).toContainText("Too many failed attempts");
+});

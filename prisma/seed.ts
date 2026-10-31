@@ -143,6 +143,11 @@ const COMPANIES: CompanySpec[] = [
 ];
 
 async function main() {
+  // The seed wipes every table. Only allow it on a local database unless forced.
+  const url = process.env.DATABASE_URL ?? "";
+  if (!/@(localhost|127\.0\.0\.1)[:/]/.test(url) && process.env.SEED_FORCE !== "1") {
+    throw new Error("Refusing to seed: DATABASE_URL is not a local database and the seed deletes all data. Set SEED_FORCE=1 to override.");
+  }
   const t0 = Date.now();
   console.log("Wiping database…");
   await wipe();

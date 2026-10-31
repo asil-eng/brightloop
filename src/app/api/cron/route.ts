@@ -1,7 +1,11 @@
 import { NextResponse } from "next/server";
 import { runDailyJobs } from "@/lib/jobs";
 
-// For an external scheduler: GET /api/cron with "Authorization: Bearer <CRON_SECRET>".
+export const dynamic = "force-dynamic";
+export const maxDuration = 60;
+
+// Daily billing and reminders. Vercel Cron calls this (see vercel.json) and sends
+// "Authorization: Bearer <CRON_SECRET>" automatically when CRON_SECRET is set.
 export async function GET(req: Request) {
   const secret = process.env.CRON_SECRET;
   if (!secret || req.headers.get("authorization") !== `Bearer ${secret}`) {

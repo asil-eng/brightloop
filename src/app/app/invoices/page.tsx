@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { ci } from "@/lib/search";
 import type { Prisma } from "@prisma/client";
 import { requireBackoffice } from "@/lib/auth";
 import { formatMoney } from "@/lib/money";
@@ -23,7 +24,7 @@ export default async function InvoicesPage({ searchParams }: { searchParams: Sea
 
   const where: Prisma.InvoiceWhereInput = {
     ...invoiceStatusWhere(status),
-    ...(q && { OR: [{ number: { contains: q } }, { customer: { name: { contains: q } } }, { subscription: { number: { contains: q } } }] }),
+    ...(q && { OR: [{ number: ci(q) }, { customer: { name: ci(q) } }, { subscription: { number: ci(q) } }] }),
     ...(customerId && { customerId }),
     ...(subscriptionId && { subscriptionId }),
     ...((from || to) && { invoiceDate: { ...(from && { gte: from }), ...(to && { lte: to }) } }),

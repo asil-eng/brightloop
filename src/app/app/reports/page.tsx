@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { ci } from "@/lib/search";
 import type { Prisma } from "@prisma/client";
 import { requireBackoffice } from "@/lib/auth";
 import { headline, monthlyRevenue } from "@/lib/metrics";
@@ -162,7 +163,7 @@ async function Overdue({ sp }: { sp: Record<string, string | string[] | undefine
   const { db } = await requireBackoffice();
   const today = startOfDay();
   const q = param(sp, "q");
-  const where: Prisma.InvoiceWhereInput = { status: "CONFIRMED", dueDate: { lt: today }, ...(q && { customer: { name: { contains: q } } }) };
+  const where: Prisma.InvoiceWhereInput = { status: "CONFIRMED", dueDate: { lt: today }, ...(q && { customer: { name: ci(q) } }) };
   const [invoices, agg] = await Promise.all([
     db.invoice.findMany({ where, include: { customer: { select: { id: true, name: true, email: true } } }, orderBy: { dueDate: "asc" }, take: 100 }),
     db.invoice.aggregate({ where, _sum: { total: true, amountPaid: true }, _count: true }),

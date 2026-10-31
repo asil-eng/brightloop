@@ -2,7 +2,8 @@ import { runDailyJobs } from "./jobs";
 
 // The daily jobs are idempotent, so running them hourly simply picks up anything due.
 export function startScheduler() {
-  if (process.env.DISABLE_SCHEDULER === "1") return;
+  // On Vercel there is no long-running server: Vercel Cron calls /api/cron instead.
+  if (process.env.DISABLE_SCHEDULER === "1" || process.env.VERCEL) return;
   const run = async () => {
     try {
       const results = await runDailyJobs();

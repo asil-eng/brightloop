@@ -40,7 +40,7 @@ calculated in the database.
 ## Tech stack
 
 - **Next.js 15** (App Router, server actions) + **TypeScript**
-- **Prisma** ORM with **SQLite** for development (switch to PostgreSQL by changing one line)
+- **Prisma** ORM with **PostgreSQL** (Docker locally, Neon in production)
 - **Tailwind CSS v4**, **Recharts** for charts, **lucide** icons
 - **Nodemailer** for email (SMTP, or printed to the console in development), **pdf-lib** for invoice PDFs
 - Tests: Node's test runner (unit + billing integration) and **Playwright** (end-to-end)
@@ -54,10 +54,18 @@ git clone https://github.com/asil-eng/brightloop.git
 cd brightloop
 npm install
 cp .env.example .env
-npx prisma migrate dev      # creates prisma/dev.db
-npm run db:seed             # demo data: ~1,200 subscriptions with a year of history
+
+# Local PostgreSQL (matches the URLs in .env.example)
+docker run -d --name brightloop-pg -e POSTGRES_USER=brightloop -e POSTGRES_PASSWORD=brightloop \
+  -e POSTGRES_DB=brightloop -p 5433:5432 postgres:16-alpine
+
+npx prisma migrate deploy   # create the tables
+npm run db:seed             # optional: two demo companies with a year of history
 npm run dev                 # http://localhost:3000
 ```
+
+Without the seed, the system starts empty and the first company registers at `/signup`. The seed deletes all data and
+refuses to run against anything but a local database.
 
 ### Demo logins
 
@@ -81,6 +89,27 @@ in the terminal running `npm run dev`, unless SMTP is configured.
 **Demo payments:** pay with any 16-digit card (e.g. `4242 4242 4242 4242`, any future expiry, any CVC) or any UPI ID.
 Card `4000 0000 0000 0002` is declined, to show the failure path. No real money moves.
 
+## Deploying (Vercel + Neon)
+
+1. **Database:** create a project on [Neon](https://neon.tech). Copy the **pooled** connection string (DATABASE_URL)
+   and the **direct** one (DIRECT_URL).
+2. **Vercel:** import the GitHub repo at [vercel.com/new](https://vercel.com/new). Vercel runs `npm run vercel-build`,
+   which applies database migrations and builds the app.
+3. **Environment variables** (Vercel → Project → Settings → Environment Variables):
+
+   | Variable | Value |
+   |---|---|
+   | `DATABASE_URL` | Neon pooled connection string |
+   | `DIRECT_URL` | Neon direct connection string |
+   | `CRON_SECRET` | any long random string (protects the daily billing job) |
+   | `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASS`, `MAIL_FROM_ADDRESS` | email settings (see below) |
+   | `APP_URL` | optional: your custom domain, e.g. `https://brightloop.example.com` |
+
+4. **Daily billing:** `vercel.json` schedules Vercel Cron to call `/api/cron` every day at 00:30 UTC. That creates
+   invoices, renews or closes subscriptions and sends reminders for every company.
+
+Production starts empty: businesses register at `/signup`.
+
 ### Email
 
 Without SMTP settings, emails are printed to the server console and logged under **Settings → Email delivery**.
@@ -99,14 +128,20 @@ For a local inbox, run [Mailpit](https://mailpit.axllent.org/) and use `SMTP_HOS
 
 ### Scheduled jobs
 
-The server runs the billing and reminder jobs every hour (set `DISABLE_SCHEDULER=1` to turn this off). An external
-scheduler can call `GET /api/cron` with the header `Authorization: Bearer $CRON_SECRET`. Admins can also click
-**Settings → Run billing & reminders now**.
+Running with `npm run dev` or `npm start`, the server runs the billing and reminder jobs every hour (set
+`DISABLE_SCHEDULER=1` to turn this off). On Vercel, Vercel Cron calls `GET /api/cron` daily instead, authenticated with
+`Authorization: Bearer $CRON_SECRET`. Admins can also click **Settings → Run billing & reminders now**.
+
+### Security
+
+Passwords are hashed with bcrypt, sessions are random tokens stored hashed, and reset/invite links are one-time and
+expire. After 8 failed logins for an email, logins for it pause for 15 minutes; password-reset emails are capped at 5
+per hour per address.
 
 ## Tests
 
 ```bash
-npm test            # unit tests + billing engine integration tests (throwaway database)
+npm test            # unit tests + billing engine integration tests (uses a separate brightloop_test database)
 npm run test:e2e    # Playwright browser tests against the seeded dev database
 npm run typecheck
 npm run lint
@@ -157,9 +192,3 @@ e2e/                     Playwright tests
 `ProductVariant` · `Tax` · `RecurringPlan` · `PaymentTerm` · `QuotationTemplate` / `TemplateLine` · `Subscription` /
 `SubscriptionLine` · `Discount` · `Invoice` / `InvoiceLine` · `Payment` · `CloseReason` · `Activity` (chatter) ·
 `EmailLog` · `Sequence` (document numbers)
-
-### Using PostgreSQL
-
-In `prisma/schema.prisma`, set `provider = "postgresql"`, point `DATABASE_URL` at your database, delete
-`prisma/migrations` and run `npx prisma migrate dev --name init`. With PostgreSQL, add `mode: "insensitive"` to the
-`contains` searches for case-insensitive search (SQLite's `LIKE` is already case-insensitive).
