@@ -94,7 +94,7 @@ export function Card({ title, actions, children, className }: { title?: ReactNod
           {actions}
         </div>
       )}
-      <div className="p-4">{children}</div>
+      <div className="overflow-x-auto p-4">{children}</div>
     </section>
   );
 }

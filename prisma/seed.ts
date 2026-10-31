@@ -1,4 +1,3 @@
-/* eslint-disable no-console */
 // Demo data for Brightloop Software: catalogue, plans, discounts, demo logins and
 // ~1,200 subscriptions with a year of invoices and payments (to prove pages stay fast).
 // Run with: npm run db:seed   (wipes existing data)

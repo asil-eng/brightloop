@@ -76,14 +76,14 @@ export function LineEditor({
     <div>
       <input type="hidden" name="lines" value={JSON.stringify(lines)} />
       <div className="overflow-x-auto">
-        <table className="table">
+        <table className="table min-w-[56rem]">
           <thead>
             <tr>
               <th className="min-w-56">Product</th>
-              <th className="min-w-40">Variant / description</th>
+              <th className="min-w-48">Variant / description</th>
               <th className="w-24 text-right">Qty</th>
               {pricing && <th className="w-32 text-right">Unit price (₹)</th>}
-              {pricing && <th className="min-w-32">Taxes</th>}
+              {pricing && <th className="w-28">Taxes</th>}
               {pricing && <th className="text-right">Amount</th>}
               <th />
             </tr>
@@ -126,7 +126,7 @@ export function LineEditor({
                     <input
                       type="number"
                       min={l.productId ? minQuantity : 1}
-                      className="input text-right"
+                      className="input min-w-20 text-right"
                       value={l.quantity}
                       onChange={(e) => update(i, { quantity: Math.max(0, Math.trunc(Number(e.target.value) || 0)) })}
                     />
@@ -137,7 +137,7 @@ export function LineEditor({
                         type="number"
                         step="0.01"
                         min="0"
-                        className="input text-right"
+                        className="input min-w-28 text-right"
                         value={(l.unitPrice / 100).toString()}
                         onChange={(e) => update(i, { unitPrice: Math.round((Number(e.target.value) || 0) * 100) })}
                       />
@@ -145,7 +145,7 @@ export function LineEditor({
                   )}
                   {pricing && (
                     <td>
-                      <div className="flex flex-wrap gap-x-2 gap-y-1">
+                      <div className="flex flex-col gap-0.5">
                         {taxes.map((t) => (
                           <label key={t.id} className="flex items-center gap-1 whitespace-nowrap text-xs">
                             <input

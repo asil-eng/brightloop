@@ -59,8 +59,17 @@ export async function monthlyRevenue(months = 12) {
     return { key: `${d.getFullYear()}-${d.getMonth()}`, month: MONTH.format(d), invoiced: 0, collected: 0, newSubscriptions: 0 };
   });
   const find = (d: Date) => buckets.find((b) => b.key === `${d.getFullYear()}-${d.getMonth()}`);
-  for (const p of payments) find(p.date) && (find(p.date)!.collected += p.amount);
-  for (const i of invoices) find(i.invoiceDate) && (find(i.invoiceDate)!.invoiced += i.total);
-  for (const s of newSubs) find(s.startDate) && (find(s.startDate)!.newSubscriptions += 1);
+  for (const p of payments) {
+    const b = find(p.date);
+    if (b) b.collected += p.amount;
+  }
+  for (const i of invoices) {
+    const b = find(i.invoiceDate);
+    if (b) b.invoiced += i.total;
+  }
+  for (const s of newSubs) {
+    const b = find(s.startDate);
+    if (b) b.newSubscriptions += 1;
+  }
   return buckets;
 }

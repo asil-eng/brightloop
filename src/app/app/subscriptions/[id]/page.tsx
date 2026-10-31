@@ -88,7 +88,7 @@ export default async function SubscriptionPage({ params }: { params: Promise<{ i
             <ActionForm action={subscriptionAction} confirm="Close this subscription? No further invoices will be created." className="flex items-center gap-1">
               <input type="hidden" name="id" value={id} />
               <input type="hidden" name="op" value="close" />
-              <select name="reasonId" className="input w-auto py-1 text-xs" aria-label="Close reason">
+              <select name="reasonId" className="rounded-md border border-zinc-300 bg-white px-2 py-1 text-xs" aria-label="Close reason">
                 <option value="">Reason…</option>
                 {reasons.map((r) => <option key={r.id} value={r.id}>{r.name}</option>)}
               </select>

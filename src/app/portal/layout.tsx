@@ -8,7 +8,7 @@ export default async function PortalLayout({ children }: { children: React.React
     <div className="min-h-screen">
       <header className="no-print bg-brand-600">
         <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-3 px-4 py-3">
-          <div className="flex items-center gap-6">
+          <div className="flex w-full min-w-0 items-center gap-6 sm:w-auto">
             <span className="text-lg font-bold text-white">brightloop</span>
             <PortalNav />
           </div>

@@ -15,7 +15,7 @@ const links = [
 export function PortalNav() {
   const path = usePathname();
   return (
-    <nav className="flex gap-1 overflow-x-auto text-sm">
+    <nav className="flex min-w-0 gap-1 overflow-x-auto text-sm">
       {links.map((l) => {
         const active = l.href === "/portal" ? path === "/portal" : path.startsWith(l.href);
         return (
