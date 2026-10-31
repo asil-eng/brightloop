@@ -45,3 +45,8 @@ next-env.d.ts
 # sqlite
 /prisma/*.db
 /prisma/*.db-journal
+
+# playwright
+/test-results/
+/playwright-report/
+/blob-report/

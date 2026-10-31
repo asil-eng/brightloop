@@ -312,7 +312,7 @@ async function main() {
         untaxed: totals.subtotal,
         taxTotal: totals.taxAmount,
         total: totals.total,
-        createdAt: addDays(startDate, -between(1, 10)),
+        createdAt: new Date(Math.min(addDays(startDate, -between(1, 10)).getTime(), addDays(today, -between(0, 3)).getTime())),
         lines: {
           create: lines.map((l, i) => ({
             productId: l.productId,

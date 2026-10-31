@@ -15,7 +15,7 @@ export async function Chatter({ entityType, entityId, path }: { entityType: Enti
   });
   return (
     <Card title="Activity">
-      <ActionForm action={addNote} className="mb-4 space-y-2">
+      <ActionForm action={addNote} resetOnSuccess className="mb-4 space-y-2">
         <input type="hidden" name="entityType" value={entityType} />
         <input type="hidden" name="entityId" value={entityId} />
         <input type="hidden" name="path" value={path} />

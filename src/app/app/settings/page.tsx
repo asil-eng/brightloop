@@ -88,7 +88,7 @@ export default async function SettingsPage() {
                 <SubmitButton size="sm" variant="secondary">Save</SubmitButton>
               </ActionForm>
             ))}
-            <ActionForm action={saveTax} className="flex flex-wrap items-center gap-2 border-t border-zinc-100 pt-3">
+            <ActionForm action={saveTax} resetOnSuccess className="flex flex-wrap items-center gap-2 border-t border-zinc-100 pt-3">
               <input name="name" placeholder="New tax, e.g. IGST 18%" required className="input w-36" />
               <input name="rate" type="number" step="0.01" placeholder="Rate" required className="input w-24" />
               <span className="text-sm text-zinc-500">%</span>
@@ -119,7 +119,7 @@ export default async function SettingsPage() {
               ))}
             </tbody>
           </table>
-          <ActionForm action={inviteStaff} className="mt-4 grid gap-2 border-t border-zinc-100 pt-4 sm:grid-cols-2">
+          <ActionForm action={inviteStaff} resetOnSuccess className="mt-4 grid gap-2 border-t border-zinc-100 pt-4 sm:grid-cols-2">
             <p className="text-sm font-medium sm:col-span-2">Add a team member</p>
             <input name="name" placeholder="Full name" required className="input" />
             <input name="email" type="email" placeholder="Email" required className="input" />
@@ -142,7 +142,7 @@ export default async function SettingsPage() {
                 <SubmitButton size="sm" variant="secondary">Save</SubmitButton>
               </ActionForm>
             ))}
-            <ActionForm action={savePaymentTerm} className="flex flex-wrap items-center gap-2 border-t border-zinc-100 pt-3">
+            <ActionForm action={savePaymentTerm} resetOnSuccess className="flex flex-wrap items-center gap-2 border-t border-zinc-100 pt-3">
               <input name="name" placeholder="e.g. 45 days" required className="input w-48" />
               <input name="dueDays" type="number" min="0" placeholder="Days" required className="input w-24" />
               <SubmitButton size="sm">Add</SubmitButton>
@@ -154,7 +154,7 @@ export default async function SettingsPage() {
           <ul className="mb-3 flex flex-wrap gap-2">
             {reasons.map((r) => <li key={r.id} className="rounded-full bg-zinc-100 px-3 py-1 text-sm">{r.name}</li>)}
           </ul>
-          <ActionForm action={addCloseReason} className="flex gap-2">
+          <ActionForm action={addCloseReason} resetOnSuccess className="flex gap-2">
             <input name="name" placeholder="New reason" required className="input" />
             <SubmitButton size="sm">Add</SubmitButton>
           </ActionForm>
