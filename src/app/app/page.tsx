@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { requireBackoffice } from "@/lib/auth";
+import { companyEmailConnected } from "@/lib/mail";
 import { headline, monthlyRevenue } from "@/lib/metrics";
 import { formatMoney } from "@/lib/money";
 import { formatDate, startOfDay } from "@/lib/dates";
@@ -33,6 +34,7 @@ export default async function Dashboard() {
   ]);
   const [products, plans, customers, team, subscriptions] = setup;
   const steps = [
+    { done: companyEmailConnected(user.org), label: "Connect your email", hint: "Invoices and customer logins are sent from your own address.", href: "/app/settings#email", adminOnly: true },
     { done: products > 0, label: "Add the products you sell", hint: "Services, add-ons and goods, with variants and prices.", href: "/app/products/new", adminOnly: true },
     { done: plans > 0, label: "Create a recurring plan", hint: "How often you bill: daily, weekly, monthly or yearly.", href: "/app/plans/new", adminOnly: true },
     { done: customers > 0, label: "Add your first customer", hint: "They get an email with their login to your customer portal.", href: "/app/customers/new" },

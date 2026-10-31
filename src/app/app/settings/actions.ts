@@ -4,7 +4,8 @@ import { revalidatePath } from "next/cache";
 import type { Role } from "@prisma/client";
 import { randomToken, requireAdmin, sha256 } from "@/lib/auth";
 import { EMAIL_RE, UserError, bool, int, required, safeAction, str } from "@/lib/action";
-import { appUrl, sendMail } from "@/lib/mail";
+import { appUrl, createTransport, sendMail } from "@/lib/mail";
+import { seal, unseal } from "@/lib/secret-box";
 import { runCompanyJobs } from "@/lib/jobs";
 import { rootDb } from "@/lib/db";
 
@@ -85,6 +86,7 @@ export const inviteStaff = safeAction(async (data) => {
     heading: `Join the ${company.name} team`,
     paragraphs: [`Hello ${name},`, `You've been added as ${role === "ADMIN" ? "an administrator" : "a staff member"}. Set your password to get started (link valid for 72 hours).`],
     button: { label: "Set my password", url: `${appUrl()}/reset-password?token=${token}&invite=1` },
+    kind: "account",
   });
   return done(`Invitation sent to ${email}.`);
 });
@@ -106,4 +108,53 @@ export const runJobsNow = safeAction(async () => {
   const summary = results.map((r) => `${r.name}: ${r.count}${r.errors.length ? ` (${r.errors.length} error${r.errors.length > 1 ? "s" : ""}: ${r.errors.slice(0, 2).join("; ")})` : ""}`).join(" · ");
   revalidatePath("/app", "layout");
   return { ok: `Done. ${summary}` };
+});
+
+/**
+ * Connect the company's own email account. The connection is tested and a test
+ * email is sent to the admin before anything is saved; the password is encrypted.
+ */
+export const saveEmailSettings = safeAction(async (data) => {
+  const admin = await requireAdmin();
+  const { db } = admin;
+  const org = await db.organization.findFirstOrThrow();
+  const host = required(data, "smtpHost", "Mail server").toLowerCase();
+  const port = int(data, "smtpPort", 465);
+  const user = required(data, "smtpUser", "Username");
+  const from = (str(data, "smtpFrom") || user).toLowerCase();
+  if (!EMAIL_RE.test(from)) throw new UserError("Enter a valid sender email address.");
+  if (![25, 465, 587, 2525].includes(port)) throw new UserError("Use port 465 (SSL) or 587 (STARTTLS).");
+  // Leaving the password empty keeps the saved one.
+  const typed = str(data, "smtpPass").replace(/\s+/g, "");
+  const pass = typed || (org.smtpPassword ? unseal(org.smtpPassword) : "");
+  if (!pass) throw new UserError("Enter the password (for Gmail, an app password).");
+
+  try {
+    const transport = createTransport({ host, port, user, pass });
+    await transport.verify();
+    await transport.sendMail({
+      from: `"${org.name.replace(/["\\]/g, "")}" <${from}>`,
+      to: admin.email,
+      subject: `${org.name}: your email is connected`,
+      text: `This is a test from Brightloop. Invoices and customer emails for ${org.name} will now be sent from ${from}.`,
+    });
+  } catch (e) {
+    const reason = e instanceof Error ? e.message : String(e);
+    throw new UserError(`Couldn't connect: ${reason.slice(0, 200)}. Check the server, port, username and password.`);
+  }
+
+  await db.organization.update({
+    where: { id: org.id },
+    data: { smtpHost: host, smtpPort: port, smtpUser: user, smtpPassword: seal(pass), smtpFrom: from, emailConnectedAt: new Date() },
+  });
+  return done(`Connected. A test email was sent to ${admin.email}.`);
+});
+
+export const disconnectEmail = safeAction(async () => {
+  const { db, orgId } = await requireAdmin();
+  await db.organization.update({
+    where: { id: orgId },
+    data: { smtpHost: "", smtpUser: "", smtpPassword: "", smtpFrom: "", emailConnectedAt: null },
+  });
+  return done("Email disconnected. Customer emails won't be sent until you connect again.");
 });

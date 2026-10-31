@@ -1,6 +1,7 @@
 "use server";
 
 import { redirect } from "next/navigation";
+import { headers } from "next/headers";
 import { rootDb, scopedDb } from "@/lib/db";
 import {
   createSession,
@@ -54,11 +55,18 @@ export const registerCompanyAction = safeAction(async (data) => {
   if (pwError) throw new UserError(pwError);
   if (password !== str(data, "confirm")) throw new UserError("The passwords do not match.");
 
+  // Limit how many companies one network can register, to slow down abuse.
+  const ip = ((await headers()).get("x-forwarded-for") ?? "local").split(",")[0].trim();
+  if (await isLimited(`register:${ip}`, 5, 60)) {
+    throw new UserError("Too many companies registered from your network. Please try again in an hour.");
+  }
+
   // One account per email, across the whole platform.
   if (await rootDb.user.findUnique({ where: { email } })) {
     throw new UserError("An account with this email already exists. Try logging in or resetting your password.");
   }
 
+  await recordHit(`register:${ip}`);
   const { org, admin } = await setUpCompany({ companyName, ownerName: name, ownerEmail: email, passwordHash: await hashPassword(password) });
 
   await sendMail(scopedDb(org.id), {
@@ -67,9 +75,10 @@ export const registerCompanyAction = safeAction(async (data) => {
     heading: `Your workspace for ${companyName} is ready`,
     paragraphs: [
       `Hello ${name},`,
-      "You're the administrator. Add your products and plans, invite your team and add your customers. Your customers get their own login to see and pay their invoices.",
+      "You're the administrator. Add your products and plans, invite your team and add your customers. Connect your company email in Settings so invoices and customer logins are sent from your own address.",
     ],
     button: { label: "Open my workspace", url: `${appUrl()}/app` },
+    kind: "account",
   });
 
   await createSession(admin.id);
@@ -96,6 +105,7 @@ export const forgotPasswordAction = safeAction(async (data) => {
         "If you didn't ask for this, you can ignore this email.",
       ],
       button: { label: "Choose a new password", url: `${appUrl()}/reset-password?token=${token}` },
+      kind: "account",
     });
   }
   // Same answer whether or not the account exists, so emails can't be probed.

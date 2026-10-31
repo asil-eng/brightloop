@@ -198,8 +198,8 @@ export async function sendInvoice(db: Db, invoiceId: string, userId?: string | n
     attachments: [{ filename: `${fresh.number!.replace(/\//g, "-")}.pdf`, content: pdf, contentType: "application/pdf" }],
     entity: { type: "invoice", id: invoiceId },
   });
-  await db.invoice.update({ where: { id: invoiceId }, data: { sentAt: new Date() } });
-  await logActivity(db, "invoice", invoiceId, ok ? `Invoice emailed to ${inv.customer.email}.` : `Sending to ${inv.customer.email} failed.`, userId);
+  if (ok) await db.invoice.update({ where: { id: invoiceId }, data: { sentAt: new Date() } });
+  await logActivity(db, "invoice", invoiceId, ok ? `Invoice emailed to ${inv.customer.email}.` : `Invoice not emailed to ${inv.customer.email}: company email not connected or sending failed.`, userId);
   return ok;
 }
 

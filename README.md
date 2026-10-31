@@ -102,7 +102,8 @@ Card `4000 0000 0000 0002` is declined, to show the failure path. No real money 
    | `DATABASE_URL` | Neon pooled connection string |
    | `DIRECT_URL` | Neon direct connection string |
    | `CRON_SECRET` | any long random string (protects the daily billing job) |
-   | `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASS`, `MAIL_FROM_ADDRESS` | email settings (see below) |
+   | `EMAIL_ENCRYPTION_KEY` | any long random string (encrypts companies' email passwords; never change it later) |
+   | `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASS`, `MAIL_FROM_ADDRESS` | the platform sender for account emails (see below) |
    | `APP_URL` | optional: your custom domain, e.g. `https://brightloop.example.com` |
 
 4. **Daily billing:** `vercel.json` schedules Vercel Cron to call `/api/cron` every day at 00:30 UTC. That creates
@@ -112,19 +113,19 @@ Production starts empty: businesses register at `/signup`.
 
 ### Email
 
-Without SMTP settings, emails are printed to the server console and logged under **Settings → Email delivery**.
-To send real emails, set these in `.env`:
+There are two kinds of email:
 
-```bash
-# Gmail (create an App Password in your Google account)
-SMTP_HOST="smtp.gmail.com"
-SMTP_PORT="465"
-SMTP_USER="you@gmail.com"
-SMTP_PASS="your-app-password"
-MAIL_FROM_ADDRESS="you@gmail.com"   # emails show the sending company's name
-```
+- **Company emails** (customer logins, quotations, invoices with PDFs, receipts, reminders) are sent **only through
+  the company's own email account**, which its admin connects in **Settings → Email** (e.g. a Gmail app password). The
+  connection is tested and a test email sent before saving, and the password is stored encrypted (AES-256-GCM, key in
+  `EMAIL_ENCRYPTION_KEY`). Until a company connects its email, nothing is sent on its behalf; staff can copy a one-time
+  login link for a customer from the customer page instead.
+- **Account emails** (password resets, the welcome email for a new company, staff invitations) are sent by one
+  platform sender configured with `SMTP_*` variables, capped at `PLATFORM_EMAIL_DAILY_LIMIT` per day and 10 per
+  recipient per day.
 
-For a local inbox, run [Mailpit](https://mailpit.axllent.org/) and use `SMTP_HOST=localhost SMTP_PORT=1025`.
+So a company can't use the platform's address to email strangers: anything it sends goes out from its own account.
+In development, emails that can't be sent are printed to the terminal running `npm run dev`.
 
 ### Scheduled jobs
 
@@ -136,7 +137,7 @@ Running with `npm run dev` or `npm start`, the server runs the billing and remin
 
 Passwords are hashed with bcrypt, sessions are random tokens stored hashed, and reset/invite links are one-time and
 expire. After 8 failed logins for an email, logins for it pause for 15 minutes; password-reset emails are capped at 5
-per hour per address.
+per hour per address; each network can register at most 5 companies per hour.
 
 ## Tests
 

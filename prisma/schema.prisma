@@ -80,6 +80,15 @@ model Organization {
   renewalReminderDays Int      @default(7)
   createdAt           DateTime @default(now())
 
+  // The company's own outgoing email account. Emails to its customers are sent
+  // only through this account; the password is encrypted (see lib/secret-box.ts).
+  smtpHost         String    @default("")
+  smtpPort         Int       @default(465)
+  smtpUser         String    @default("")
+  smtpPassword     String    @default("")
+  smtpFrom         String    @default("")
+  emailConnectedAt DateTime?
+
   users         User[]
   customers     Customer[]
   taxes         Tax[]
@@ -528,7 +537,8 @@ model EmailLog {
   id         String       @id @default(cuid())
   to         String
   subject    String
-  status     String // sent | failed
+  status     String // sent | failed | not_sent (company email not connected / limit) | logged (dev console)
+  kind       String       @default("company") // company: to the company's customers; account: password resets, welcomes, invites
   error      String       @default("")
   entityType String?
   entityId   String?

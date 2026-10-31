@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import type { PaymentMethod } from "@prisma/client";
 import { requireBackoffice } from "@/lib/auth";
+import { companyEmailConnected } from "@/lib/mail";
 import { UserError, required, safeAction, str } from "@/lib/action";
 import { cancelInvoice, confirmInvoice, registerPayment, sendInvoice } from "@/lib/billing";
 import { toMinor } from "@/lib/money";
@@ -25,7 +26,13 @@ export const invoiceAction = safeAction(async (data) => {
   } else if (op === "send") {
     const sent = await sendInvoice(db, id, user.id);
     ok = sent ? "Invoice emailed to the customer." : "";
-    if (!sent) throw new UserError("The email could not be sent. Check the email settings.");
+    if (!sent) {
+      throw new UserError(
+        companyEmailConnected(user.org)
+          ? "The email could not be sent. Check Settings → Email and the recent emails list."
+          : "Not sent: connect your company email in Settings → Email first. You can still download the PDF and send it yourself.",
+      );
+    }
   } else throw new UserError("Unknown action.");
   revalidatePath(`/app/invoices/${id}`);
   return { ok };

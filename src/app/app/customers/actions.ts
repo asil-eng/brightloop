@@ -31,8 +31,9 @@ export const createCustomer = safeAction(async (data) => {
   }
   const c = await db.customer.create({ data: values });
   await logActivity(db, "customer", c.id, "Customer created.", user.id);
-  await sendPortalInvite(db, c, user.id);
-  redirect(`/app/customers/${c.id}`);
+  const invite = await sendPortalInvite(db, c, user.id);
+  // Without a connected company email the link is shown on the customer page instead.
+  redirect(`/app/customers/${c.id}${invite.link ? "?login=pending" : ""}`);
 });
 
 export const updateCustomer = safeAction(async (data) => {
@@ -59,9 +60,9 @@ export const resendLogin = safeAction(async (data) => {
   const id = required(data, "id", "Customer");
   const c = await db.customer.findUniqueOrThrow({ where: { id } });
   try {
-    const ok = await sendPortalInvite(db, c, staff.id);
+    const { message, link } = await sendPortalInvite(db, c, staff.id);
     revalidatePath(`/app/customers/${id}`);
-    return { ok };
+    return { ok: message, copy: link };
   } catch (e) {
     if (e instanceof Error && e.message === "EMAIL_TAKEN") throw new UserError("Another account already uses this email.");
     throw e;

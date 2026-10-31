@@ -47,7 +47,7 @@ test("a business registers and gets its own empty workspace", async ({ page }) =
   await page.getByRole("button", { name: "Create company account" }).click();
   await expect(page).toHaveURL(/\/app$/);
   await expect(page.locator("aside").getByText(owner.company)).toBeVisible();
-  await expect(page.getByText(/Get started · 0 of 5 done/)).toBeVisible();
+  await expect(page.getByText(/Get started · 0 of 6 done/)).toBeVisible();
 
   // The new company sees none of the demo companies' data.
   await page.goto("/app/subscriptions");
@@ -82,7 +82,6 @@ test("staff add a customer, who gets a login by email, then quote-to-cash and on
   await page.getByLabel("Name").fill(customer.name);
   await page.getByLabel("Email").fill(customer.email);
   await page.getByRole("button", { name: "Create customer" }).click();
-  await expect(page.getByText("Login details were emailed")).toBeVisible();
   await expect(page.getByText(`Login details emailed to ${customer.email}.`)).toBeVisible();
   const sent = await prisma.emailLog.findFirst({ where: { to: customer.email }, orderBy: { createdAt: "desc" } });
   expect(sent?.subject).toBe("Your Brightloop Software customer account");

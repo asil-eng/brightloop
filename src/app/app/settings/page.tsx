@@ -2,9 +2,17 @@ import { requireAdmin } from "@/lib/auth";
 import { formatDateTime } from "@/lib/dates";
 import { Badge, Card, Field, PageHeader } from "@/components/ui";
 import { ActionForm, SubmitButton } from "@/components/form";
-import { addCloseReason, inviteStaff, runJobsNow, saveCompany, savePaymentTerm, saveTax, toggleUser } from "./actions";
+import { companyEmailConnected } from "@/lib/mail";
+import { disconnectEmail, saveEmailSettings, addCloseReason, inviteStaff, runJobsNow, saveCompany, savePaymentTerm, saveTax, toggleUser } from "./actions";
 
 export const metadata = { title: "Settings" };
+
+const EMAIL_STATUS: Record<string, React.ReactNode> = {
+  sent: <Badge status="PAID" label="Sent" />,
+  logged: <Badge status="DRAFT" label="Dev console" />,
+  not_sent: <Badge status="PAUSED" label="Not sent" />,
+  failed: <Badge status="CANCELLED" label="Failed" />,
+};
 
 export default async function SettingsPage() {
   const me = await requireAdmin();
@@ -17,7 +25,7 @@ export default async function SettingsPage() {
     db.user.findMany({ where: { role: { in: ["ADMIN", "STAFF"] } }, orderBy: [{ role: "asc" }, { name: "asc" }] }),
     db.emailLog.findMany({ orderBy: { createdAt: "desc" }, take: 15 }),
   ]);
-  const smtp = Boolean(process.env.SMTP_HOST);
+  const connected = company ? companyEmailConnected(company) : false;
 
   return (
     <>
@@ -44,21 +52,63 @@ export default async function SettingsPage() {
           </ActionForm>
         </Card>
 
+        <div id="email" className="scroll-mt-6">
+          <Card title="Email">
+            <p className="text-sm text-ink-secondary">
+              Invoices, quotations, receipts, reminders and customer logins are sent from <strong className="font-medium text-ink">your own email account</strong>,
+              so they come from your address and replies reach you.
+            </p>
+            {connected ? (
+              <div className="mt-3 rounded-md border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm text-emerald-900">
+                ✓ Connected. Sending from <strong className="font-medium">{company?.smtpFrom}</strong> via {company?.smtpHost}
+                {company?.emailConnectedAt ? ` since ${formatDateTime(company.emailConnectedAt)}` : ""}.
+              </div>
+            ) : (
+              <div className="mt-3 rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-900">
+                Not connected. Customer emails are not sent until you connect an account. You can still share customer login links by hand.
+              </div>
+            )}
+            <ActionForm action={saveEmailSettings} className="mt-4 grid gap-4 sm:grid-cols-2">
+              <Field label="Mail server (SMTP)" hint="Gmail: smtp.gmail.com · Outlook: smtp.office365.com · Zoho: smtp.zoho.in">
+                <input name="smtpHost" defaultValue={company?.smtpHost || "smtp.gmail.com"} required className="input" />
+              </Field>
+              <Field label="Port" hint="465 (SSL) or 587">
+                <input name="smtpPort" type="number" defaultValue={company?.smtpPort ?? 465} required className="input" />
+              </Field>
+              <Field label="Username" hint="Usually your full email address.">
+                <input name="smtpUser" defaultValue={company?.smtpUser} required autoComplete="off" className="input" />
+              </Field>
+              <Field label="Password" hint={connected ? "Leave empty to keep the saved password." : "For Gmail, create an app password at myaccount.google.com/apppasswords."}>
+                <input name="smtpPass" type="password" autoComplete="new-password" placeholder={connected ? "••••••••••••" : ""} className="input" />
+              </Field>
+              <Field label="Send from" hint="Defaults to the username." className="sm:col-span-2">
+                <input name="smtpFrom" type="email" defaultValue={company?.smtpFrom} className="input" />
+              </Field>
+              <div className="flex flex-wrap items-center gap-3 sm:col-span-2">
+                <SubmitButton>{connected ? "Save & send test email" : "Connect & send test email"}</SubmitButton>
+                <span className="text-[13px] text-ink-secondary">Your password is stored encrypted.</span>
+              </div>
+            </ActionForm>
+            {connected && (
+              <ActionForm action={disconnectEmail} confirm="Disconnect your email? Customer emails will stop until you connect again." className="mt-3">
+                <SubmitButton size="sm" variant="danger">Disconnect</SubmitButton>
+              </ActionForm>
+            )}
+          </Card>
+        </div>
+
         <Card title="Automation">
           <p className="text-sm text-ink-secondary">
             Every day the system starts subscriptions that reached their start date, creates and sends invoices for everything due,
             closes or renews expired subscriptions, expires discounts and sends overdue and renewal reminders. It runs on its own
-            every hour; you can also run it now.
+            every day; you can also run it now.
           </p>
           <ActionForm action={runJobsNow} className="mt-4">
             <SubmitButton variant="accent">Run billing &amp; reminders now</SubmitButton>
           </ActionForm>
           <div className="mt-5 border-t border-rule/60 pt-4">
-            <p className="label">Email delivery</p>
-            <p className="text-sm text-ink-secondary">
-              {smtp ? `Sending through ${process.env.SMTP_HOST}.` : "No SMTP server configured: emails are printed to the server console. Set SMTP_* in .env to send real emails."}
-            </p>
-            <table className="table mt-3">
+            <p className="label">Recent emails</p>
+            <table className="table mt-2">
               <thead><tr><th>When</th><th>To</th><th>Subject</th><th>Status</th></tr></thead>
               <tbody>
                 {emails.map((e) => (
@@ -66,7 +116,7 @@ export default async function SettingsPage() {
                     <td className="whitespace-nowrap text-xs text-ink-secondary">{formatDateTime(e.createdAt)}</td>
                     <td className="text-xs">{e.to}</td>
                     <td className="text-xs">{e.subject}</td>
-                    <td title={e.error}>{e.status === "sent" ? <Badge status="PAID" label="Sent" /> : <Badge status="CANCELLED" label="Failed" />}</td>
+                    <td title={e.error}>{EMAIL_STATUS[e.status] ?? <Badge status="DRAFT" label={e.status} />}</td>
                   </tr>
                 ))}
                 {emails.length === 0 && <tr><td colSpan={4} className="text-sm text-ink-secondary">No emails yet.</td></tr>}

@@ -1,10 +1,10 @@
 "use client";
 
-import { createContext, useActionState, useContext, useEffect, useRef, useTransition, type ReactNode } from "react";
+import { createContext, useActionState, useContext, useEffect, useRef, useState, useTransition, type ReactNode } from "react";
 import clsx from "clsx";
 import { buttonClass } from "./ui";
 
-export type ActionState = { error?: string; ok?: string } | undefined;
+export type ActionState = { error?: string; ok?: string; copy?: string } | undefined;
 export type FormAction = (prev: ActionState, data: FormData) => Promise<ActionState>;
 
 const PendingContext = createContext(false);
@@ -56,6 +56,7 @@ export function ActionForm({
       {state?.ok && (
         <div className="mb-3 rounded-md border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm text-emerald-800" role="status">
           {state.ok}
+          {state.copy && <CopyField value={state.copy} />}
         </div>
       )}
       <PendingContext.Provider value={pending}>{children}</PendingContext.Provider>
@@ -83,5 +84,25 @@ export function SubmitButton({
     <button type="submit" name={name} value={value} disabled={pending} className={clsx(buttonClass(variant, size), className)}>
       {pending ? "Working…" : children}
     </button>
+  );
+}
+
+/** A read-only value with a Copy button, e.g. a login link to share by hand. */
+export function CopyField({ value }: { value: string }) {
+  const [copied, setCopied] = useState(false);
+  return (
+    <div className="mt-2 flex gap-2">
+      <input readOnly value={value} aria-label="Link" className="input font-mono text-xs" onFocus={(e) => e.currentTarget.select()} />
+      <button
+        type="button"
+        className={buttonClass("secondary", "sm")}
+        onClick={async () => {
+          await navigator.clipboard.writeText(value);
+          setCopied(true);
+        }}
+      >
+        {copied ? "Copied" : "Copy"}
+      </button>
+    </div>
   );
 }
