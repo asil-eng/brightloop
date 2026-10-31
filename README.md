@@ -1,5 +1,7 @@
 # Brightloop: Subscription Management System
 
+**Live:** https://brightloop-steel.vercel.app (register your company at `/signup`)
+
 A subscription management platform that **any business can register for** and use to run plans, subscriptions and
 recurring billing in one place. Built for the **Odoo hackathon** brief *"Subscription Management System"*. It follows
 the way **Odoo Subscriptions** works, but is built from scratch.
