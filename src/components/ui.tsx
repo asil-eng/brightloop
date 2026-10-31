@@ -16,7 +16,7 @@ type Variant = keyof typeof variants;
 
 export function buttonClass(variant: Variant = "secondary", size: "sm" | "md" = "md") {
   return clsx(
-    "inline-flex items-center justify-center gap-1.5 rounded-md border font-medium shadow-sm",
+    "inline-flex items-center justify-center gap-1.5 whitespace-nowrap rounded-md border font-medium shadow-sm",
     "transition-[transform,background-color,border-color,box-shadow] duration-[var(--dp-motion-interaction)] ease-out",
     "hover:-translate-y-px hover:shadow active:translate-y-0 active:shadow-sm motion-reduce:transition-none motion-reduce:hover:translate-y-0",
     "disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:translate-y-0",
