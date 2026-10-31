@@ -64,7 +64,7 @@ export default async function InvoicePage({ params }: { params: Promise<{ id: st
             <dl className="grid gap-4 sm:grid-cols-3">
               <Info label="Customer">
                 <Link href={`/app/customers/${inv.customerId}`} className="link">{inv.customer.name}</Link>
-                <span className="block text-xs text-zinc-500">{inv.customer.email}</span>
+                <span className="block text-xs text-ink-secondary">{inv.customer.email}</span>
               </Info>
               <Info label="Invoice date">{formatDate(inv.invoiceDate)}</Info>
               <Info label="Due date">
@@ -87,7 +87,7 @@ export default async function InvoicePage({ params }: { params: Promise<{ id: st
                       <td className="text-right">{l.quantity}</td>
                       <td className="text-right tabular-nums">{formatMoney(l.unitPrice)}</td>
                       <td className="text-right tabular-nums text-emerald-700">{l.discountAmount ? `−${formatMoney(l.discountAmount)}` : "—"}</td>
-                      <td className="text-zinc-500">{l.taxLabel || "—"}</td>
+                      <td className="text-ink-secondary">{l.taxLabel || "—"}</td>
                       <td className="text-right tabular-nums">{formatMoney(l.taxAmount)}</td>
                       <td className="text-right tabular-nums">{formatMoney(l.subtotal)}</td>
                     </tr>
@@ -97,17 +97,17 @@ export default async function InvoicePage({ params }: { params: Promise<{ id: st
             </div>
             <dl className="ml-auto mt-4 w-72 space-y-1 text-sm">
               {inv.discountTotal > 0 && <div className="flex justify-between text-emerald-700"><dt>Discounts applied</dt><dd className="tabular-nums">−{formatMoney(inv.discountTotal)}</dd></div>}
-              <div className="flex justify-between"><dt className="text-zinc-500">Untaxed amount</dt><dd className="tabular-nums">{formatMoney(inv.untaxed)}</dd></div>
-              <div className="flex justify-between"><dt className="text-zinc-500">Taxes</dt><dd className="tabular-nums">{formatMoney(inv.taxTotal)}</dd></div>
-              <div className="flex justify-between border-t border-zinc-200 pt-1 font-semibold"><dt>Total</dt><dd className="tabular-nums">{formatMoney(inv.total)}</dd></div>
-              <div className="flex justify-between text-zinc-500"><dt>Paid</dt><dd className="tabular-nums">{formatMoney(inv.amountPaid)}</dd></div>
+              <div className="flex justify-between"><dt className="text-ink-secondary">Untaxed amount</dt><dd className="tabular-nums">{formatMoney(inv.untaxed)}</dd></div>
+              <div className="flex justify-between"><dt className="text-ink-secondary">Taxes</dt><dd className="tabular-nums">{formatMoney(inv.taxTotal)}</dd></div>
+              <div className="flex justify-between border-t border-rule pt-1 font-semibold"><dt>Total</dt><dd className="tabular-nums">{formatMoney(inv.total)}</dd></div>
+              <div className="flex justify-between text-ink-secondary"><dt>Paid</dt><dd className="tabular-nums">{formatMoney(inv.amountPaid)}</dd></div>
               <div className="flex justify-between font-semibold"><dt>Amount due</dt><dd className={`tabular-nums ${due > 0 && inv.status === "CONFIRMED" ? "text-red-600" : ""}`}>{formatMoney(inv.status === "CANCELLED" ? 0 : due)}</dd></div>
             </dl>
           </Card>
 
           <Card title="Payments">
             {inv.payments.length === 0 ? (
-              <p className="text-sm text-zinc-500">No payments yet.</p>
+              <p className="text-sm text-ink-secondary">No payments yet.</p>
             ) : (
               <table className="table">
                 <thead><tr><th>Number</th><th>Date</th><th>Method</th><th>Reference</th><th>Note</th><th className="text-right">Amount</th></tr></thead>
@@ -117,8 +117,8 @@ export default async function InvoicePage({ params }: { params: Promise<{ id: st
                       <td>{p.number}</td>
                       <td>{formatDate(p.date)}</td>
                       <td>{METHOD_LABEL[p.method]}</td>
-                      <td className="text-zinc-500">{p.reference || "—"}</td>
-                      <td className="text-zinc-500">{p.note || "—"}</td>
+                      <td className="text-ink-secondary">{p.reference || "—"}</td>
+                      <td className="text-ink-secondary">{p.note || "—"}</td>
                       <td className="text-right tabular-nums">{formatMoney(p.amount)}</td>
                     </tr>
                   ))}

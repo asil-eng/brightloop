@@ -54,11 +54,11 @@ export default async function Dashboard() {
           <ol className="grid gap-2 sm:grid-cols-2 xl:grid-cols-3">
             {steps.map((s, i) => (
               <li key={s.label}>
-                <Link href={s.href} className={`flex gap-3 rounded-md border p-3 transition ${s.done ? "border-emerald-200 bg-emerald-50" : "border-zinc-200 hover:border-brand-200 hover:bg-brand-50"}`}>
+                <Link href={s.href} className={`flex gap-3 rounded-md border p-3 transition ${s.done ? "border-emerald-200 bg-emerald-50" : "border-rule hover:border-brand-200 hover:bg-brand-50"}`}>
                   <span className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-xs font-semibold ${s.done ? "bg-emerald-600 text-white" : "bg-brand-100 text-brand-700"}`}>{s.done ? "✓" : i + 1}</span>
                   <span>
-                    <span className={`block text-sm font-medium ${s.done ? "text-emerald-800 line-through" : "text-zinc-900"}`}>{s.label}</span>
-                    <span className="text-xs text-zinc-500">{s.hint}</span>
+                    <span className={`block text-sm font-medium ${s.done ? "text-emerald-800 line-through" : "text-ink"}`}>{s.label}</span>
+                    <span className="text-xs text-ink-secondary">{s.hint}</span>
                   </span>
                 </Link>
               </li>
@@ -90,7 +90,7 @@ export default async function Dashboard() {
       <div className="mt-5 grid gap-5 xl:grid-cols-3">
         <Card title="Overdue invoices to chase" className="xl:col-span-2" actions={<Link href="/app/invoices?status=OVERDUE" className="text-xs link">View all</Link>}>
           {overdue.length === 0 ? (
-            <p className="text-sm text-zinc-500">Nothing overdue. 🎉</p>
+            <p className="text-sm text-ink-secondary">Nothing overdue. 🎉</p>
           ) : (
             <table className="table">
               <thead><tr><th>Invoice</th><th>Customer</th><th>Due</th><th className="text-right">Days late</th><th className="text-right">Amount due</th></tr></thead>

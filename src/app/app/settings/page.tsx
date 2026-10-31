@@ -32,11 +32,11 @@ export default async function SettingsPage() {
             <Field label="Address" className="sm:col-span-2"><textarea name="address" rows={2} defaultValue={company?.address} className="input" /></Field>
             <label className="flex items-start gap-2 text-sm sm:col-span-2">
               <input type="checkbox" name="autoConfirmInvoices" defaultChecked={company?.autoConfirmInvoices} className="mt-0.5" />
-              <span><span className="font-medium">Confirm invoices automatically</span><span className="block text-xs text-zinc-500">Off: billing day creates drafts for the team to review.</span></span>
+              <span><span className="font-medium">Confirm invoices automatically</span><span className="block text-xs text-ink-secondary">Off: billing day creates drafts for the team to review.</span></span>
             </label>
             <label className="flex items-start gap-2 text-sm sm:col-span-2">
               <input type="checkbox" name="autoSendInvoices" defaultChecked={company?.autoSendInvoices} className="mt-0.5" />
-              <span><span className="font-medium">Email invoices automatically</span><span className="block text-xs text-zinc-500">Sends each confirmed invoice with its PDF and a pay-online link.</span></span>
+              <span><span className="font-medium">Email invoices automatically</span><span className="block text-xs text-ink-secondary">Sends each confirmed invoice with its PDF and a pay-online link.</span></span>
             </label>
             <Field label="Overdue reminder after (days)"><input name="overdueReminderDays" type="number" min="0" defaultValue={company?.overdueReminderDays} className="input" /></Field>
             <Field label="Renewal reminder before (days)"><input name="renewalReminderDays" type="number" min="0" defaultValue={company?.renewalReminderDays} className="input" /></Field>
@@ -45,7 +45,7 @@ export default async function SettingsPage() {
         </Card>
 
         <Card title="Automation">
-          <p className="text-sm text-zinc-600">
+          <p className="text-sm text-ink-secondary">
             Every day the system starts subscriptions that reached their start date, creates and sends invoices for everything due,
             closes or renews expired subscriptions, expires discounts and sends overdue and renewal reminders. It runs on its own
             every hour; you can also run it now.
@@ -53,9 +53,9 @@ export default async function SettingsPage() {
           <ActionForm action={runJobsNow} className="mt-4">
             <SubmitButton variant="accent">Run billing &amp; reminders now</SubmitButton>
           </ActionForm>
-          <div className="mt-5 border-t border-zinc-100 pt-4">
+          <div className="mt-5 border-t border-rule/60 pt-4">
             <p className="label">Email delivery</p>
-            <p className="text-sm text-zinc-600">
+            <p className="text-sm text-ink-secondary">
               {smtp ? `Sending through ${process.env.SMTP_HOST}.` : "No SMTP server configured: emails are printed to the server console. Set SMTP_* in .env to send real emails."}
             </p>
             <table className="table mt-3">
@@ -63,13 +63,13 @@ export default async function SettingsPage() {
               <tbody>
                 {emails.map((e) => (
                   <tr key={e.id}>
-                    <td className="whitespace-nowrap text-xs text-zinc-500">{formatDateTime(e.createdAt)}</td>
+                    <td className="whitespace-nowrap text-xs text-ink-secondary">{formatDateTime(e.createdAt)}</td>
                     <td className="text-xs">{e.to}</td>
                     <td className="text-xs">{e.subject}</td>
                     <td title={e.error}>{e.status === "sent" ? <Badge status="PAID" label="Sent" /> : <Badge status="CANCELLED" label="Failed" />}</td>
                   </tr>
                 ))}
-                {emails.length === 0 && <tr><td colSpan={4} className="text-sm text-zinc-500">No emails yet.</td></tr>}
+                {emails.length === 0 && <tr><td colSpan={4} className="text-sm text-ink-secondary">No emails yet.</td></tr>}
               </tbody>
             </table>
           </div>
@@ -82,16 +82,16 @@ export default async function SettingsPage() {
                 <input type="hidden" name="id" value={t.id} />
                 <input name="name" defaultValue={t.name} className="input w-36" aria-label="Tax name" />
                 <input name="rate" type="number" step="0.01" defaultValue={t.rate} className="input w-24" aria-label="Rate %" />
-                <span className="text-sm text-zinc-500">%</span>
+                <span className="text-sm text-ink-secondary">%</span>
                 <label className="flex items-center gap-1 text-xs"><input type="checkbox" name="priceIncluded" defaultChecked={t.priceIncluded} /> Included in price</label>
                 <label className="flex items-center gap-1 text-xs"><input type="checkbox" name="active" defaultChecked={t.active} /> Active</label>
                 <SubmitButton size="sm" variant="secondary">Save</SubmitButton>
               </ActionForm>
             ))}
-            <ActionForm action={saveTax} resetOnSuccess className="flex flex-wrap items-center gap-2 border-t border-zinc-100 pt-3">
+            <ActionForm action={saveTax} resetOnSuccess className="flex flex-wrap items-center gap-2 border-t border-rule/60 pt-3">
               <input name="name" placeholder="New tax, e.g. IGST 18%" required className="input w-36" />
               <input name="rate" type="number" step="0.01" placeholder="Rate" required className="input w-24" />
-              <span className="text-sm text-zinc-500">%</span>
+              <span className="text-sm text-ink-secondary">%</span>
               <label className="flex items-center gap-1 text-xs"><input type="checkbox" name="priceIncluded" /> Included in price</label>
               <SubmitButton size="sm">Add tax</SubmitButton>
             </ActionForm>
@@ -105,7 +105,7 @@ export default async function SettingsPage() {
               {staff.map((u) => (
                 <tr key={u.id}>
                   <td>{u.name}{!u.passwordHash && <span className="ml-1 text-xs text-amber-700">(invited)</span>}</td>
-                  <td className="text-zinc-500">{u.email}</td>
+                  <td className="text-ink-secondary">{u.email}</td>
                   <td><Badge status={u.role} /></td>
                   <td className="text-right">
                     {u.id !== me.id && (
@@ -119,7 +119,7 @@ export default async function SettingsPage() {
               ))}
             </tbody>
           </table>
-          <ActionForm action={inviteStaff} resetOnSuccess className="mt-4 grid gap-2 border-t border-zinc-100 pt-4 sm:grid-cols-2">
+          <ActionForm action={inviteStaff} resetOnSuccess className="mt-4 grid gap-2 border-t border-rule/60 pt-4 sm:grid-cols-2">
             <p className="text-sm font-medium sm:col-span-2">Add a team member</p>
             <input name="name" placeholder="Full name" required className="input" />
             <input name="email" type="email" placeholder="Email" required className="input" />
@@ -138,11 +138,11 @@ export default async function SettingsPage() {
                 <input type="hidden" name="id" value={t.id} />
                 <input name="name" defaultValue={t.name} className="input w-48" aria-label="Name" />
                 <input name="dueDays" type="number" min="0" defaultValue={t.dueDays} className="input w-24" aria-label="Due days" />
-                <span className="text-sm text-zinc-500">days</span>
+                <span className="text-sm text-ink-secondary">days</span>
                 <SubmitButton size="sm" variant="secondary">Save</SubmitButton>
               </ActionForm>
             ))}
-            <ActionForm action={savePaymentTerm} resetOnSuccess className="flex flex-wrap items-center gap-2 border-t border-zinc-100 pt-3">
+            <ActionForm action={savePaymentTerm} resetOnSuccess className="flex flex-wrap items-center gap-2 border-t border-rule/60 pt-3">
               <input name="name" placeholder="e.g. 45 days" required className="input w-48" />
               <input name="dueDays" type="number" min="0" placeholder="Days" required className="input w-24" />
               <SubmitButton size="sm">Add</SubmitButton>
@@ -152,7 +152,7 @@ export default async function SettingsPage() {
 
         <Card title="Close reasons">
           <ul className="mb-3 flex flex-wrap gap-2">
-            {reasons.map((r) => <li key={r.id} className="rounded-full bg-zinc-100 px-3 py-1 text-sm">{r.name}</li>)}
+            {reasons.map((r) => <li key={r.id} className="rounded-full bg-ground-muted px-3 py-1 text-sm">{r.name}</li>)}
           </ul>
           <ActionForm action={addCloseReason} resetOnSuccess className="flex gap-2">
             <input name="name" placeholder="New reason" required className="input" />

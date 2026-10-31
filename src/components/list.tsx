@@ -1,6 +1,7 @@
 import Link from "next/link";
 import clsx from "clsx";
 import { Search } from "lucide-react";
+import { buttonClass } from "./ui";
 
 export const PAGE_SIZE = 25;
 
@@ -58,7 +59,7 @@ export function SearchBar({
     <form action={action} className="card mb-4 flex flex-wrap items-end gap-2 p-3">
       {search && (
         <div className="relative min-w-48 flex-1">
-          <Search className="pointer-events-none absolute left-2.5 top-2.5 text-zinc-400" size={16} />
+          <Search className="pointer-events-none absolute left-2.5 top-2.5 text-ink-secondary/70" size={16} />
           <input name="q" defaultValue={param(sp, "q")} placeholder={placeholder} className="input pl-8" />
         </div>
       )}
@@ -79,8 +80,8 @@ export function SearchBar({
         </>
       )}
       {extra}
-      <button className="rounded-md bg-brand-600 px-3.5 py-2 text-sm font-medium text-white hover:bg-brand-700">Apply</button>
-      <Link href={action + (extraQuery ?? "")} className="px-2 py-2 text-sm text-zinc-500 hover:text-zinc-800">
+      <button className={buttonClass("primary")}>Apply</button>
+      <Link href={action + (extraQuery ?? "")} className="rounded-md px-2 py-2 text-sm text-ink-secondary hover:text-ink">
         Reset
       </Link>
     </form>
@@ -92,9 +93,9 @@ export function Pagination({ base, sp, page, total, pageSize = PAGE_SIZE }: { ba
   const from = total === 0 ? 0 : (page - 1) * pageSize + 1;
   const to = Math.min(total, page * pageSize);
   const btn = (enabled: boolean) =>
-    clsx("rounded-md border px-3 py-1.5 text-sm", enabled ? "border-zinc-300 bg-white hover:bg-zinc-50" : "pointer-events-none border-zinc-200 text-zinc-300");
+    clsx("rounded-md border px-3 py-1.5 text-sm", enabled ? "border-rule bg-panel text-ink hover:bg-ground-muted" : "pointer-events-none border-rule/60 text-ink-secondary/40");
   return (
-    <div className="flex items-center justify-between gap-2 px-3 py-3 text-sm text-zinc-500">
+    <div className="flex items-center justify-between gap-2 px-3 py-3 text-[13px] text-ink-secondary">
       <span>
         {from}–{to} of {total.toLocaleString("en-IN")}
       </span>
@@ -114,12 +115,13 @@ export function Pagination({ base, sp, page, total, pageSize = PAGE_SIZE }: { ba
 export function QueryTabs({ base, sp, name, tabs }: { base: string; sp: Record<string, string | string[] | undefined>; name: string; tabs: { value: string; label: string }[] }) {
   const current = param(sp, name) || tabs[0].value;
   return (
-    <div className="inline-flex rounded-md border border-zinc-300 bg-white p-0.5 text-sm">
+    <div className="inline-flex rounded-md border border-rule bg-panel p-0.5 text-sm">
       {tabs.map((t) => (
         <Link
           key={t.value}
           href={withQuery(base, sp, { [name]: t.value === tabs[0].value ? null : t.value, page: null })}
-          className={clsx("rounded px-3 py-1", current === t.value ? "bg-brand-600 text-white" : "text-zinc-600 hover:bg-zinc-100")}
+          aria-current={current === t.value ? "page" : undefined}
+          className={clsx("rounded px-3 py-1", current === t.value ? "bg-accent text-on-accent" : "text-ink-secondary hover:bg-ground-muted hover:text-ink")}
         >
           {t.label}
         </Link>

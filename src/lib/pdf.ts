@@ -24,7 +24,7 @@ export async function invoicePdf(db: Db, invoiceId: string): Promise<Uint8Array>
   const page = pdf.addPage([595, 842]); // A4
   const font = await pdf.embedFont(StandardFonts.Helvetica);
   const bold = await pdf.embedFont(StandardFonts.HelveticaBold);
-  const purple = rgb(0.443, 0.294, 0.404);
+  const ink = rgb(0.086, 0.098, 0.122);
   const grey = rgb(0.4, 0.4, 0.4);
 
   const text = (s: string, x: number, y: number, o: { size?: number; b?: boolean; color?: ReturnType<typeof rgb>; right?: boolean } = {}) => {
@@ -36,7 +36,7 @@ export async function invoicePdf(db: Db, invoiceId: string): Promise<Uint8Array>
   };
 
   // Header band
-  page.drawRectangle({ x: 0, y: 782, width: 595, height: 60, color: purple });
+  page.drawRectangle({ x: 0, y: 782, width: 595, height: 60, color: ink });
   text(company?.name ?? "", 40, 806, { size: 18, b: true, color: rgb(1, 1, 1) });
   text(company?.email ?? "", 555, 812, { size: 9, color: rgb(1, 1, 1), right: true });
   text(company?.address ?? "", 555, 798, { size: 9, color: rgb(1, 1, 1), right: true });
@@ -67,7 +67,7 @@ export async function invoicePdf(db: Db, invoiceId: string): Promise<Uint8Array>
 
   // Lines table
   y = Math.min(y, my) - 20;
-  page.drawRectangle({ x: 40, y: y - 6, width: 515, height: 22, color: rgb(0.95, 0.94, 0.95) });
+  page.drawRectangle({ x: 40, y: y - 6, width: 515, height: 22, color: rgb(0.953, 0.957, 0.965) });
   text("Description", 46, y, { b: true, size: 9 });
   text("Qty", 300, y, { b: true, size: 9, right: true });
   text("Unit price", 375, y, { b: true, size: 9, right: true });

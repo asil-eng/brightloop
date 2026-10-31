@@ -25,7 +25,7 @@ export default async function PayPage({ params }: { params: Promise<{ id: string
           <p>{formatDate(inv.dueDate)}</p>
           <p className="mt-3 label">Amount to pay</p>
           <p className="text-2xl font-semibold">{formatMoney(due)}</p>
-          <p className="mt-4 text-xs text-zinc-500">The money goes straight to {org.name}. Your card details are never stored.</p>
+          <p className="mt-4 text-xs text-ink-secondary">The money goes straight to {org.name}. Your card details are never stored.</p>
         </Card>
         <Card className="md:col-span-3" title="Payment details">
           <Checkout invoiceId={id} amount={formatMoney(due)} />

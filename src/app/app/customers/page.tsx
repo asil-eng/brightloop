@@ -57,10 +57,10 @@ export default async function CustomersPage({ searchParams }: { searchParams: Se
                 <tr key={c.id}>
                   <td><Link href={`/app/customers/${c.id}`} className="link">{c.name}</Link></td>
                   <td>{c.company || "—"}</td>
-                  <td className="text-zinc-500">{c.email}</td>
+                  <td className="text-ink-secondary">{c.email}</td>
                   <td>{c.userId ? "✓" : "—"}</td>
                   <td className="text-right">{c._count.subscriptions}</td>
-                  <td className={`text-right tabular-nums ${due.get(c.id) ? "text-red-600" : "text-zinc-400"}`}>{formatMoney(due.get(c.id) ?? 0)}</td>
+                  <td className={`text-right tabular-nums ${due.get(c.id) ? "text-red-600" : "text-ink-secondary/70"}`}>{formatMoney(due.get(c.id) ?? 0)}</td>
                 </tr>
               ))}
             </tbody>

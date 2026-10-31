@@ -13,7 +13,7 @@ export default async function NewProductPage() {
       <PageHeader title="New product" breadcrumbs={[{ label: "Products", href: "/app/products" }, { label: "New" }]} />
       <Card className="max-w-3xl">
         <ProductForm action={createProduct} taxes={taxes} />
-        <p className="mt-4 text-xs text-zinc-500">You can add variants (e.g. Brand) after creating the product.</p>
+        <p className="mt-4 text-xs text-ink-secondary">You can add variants (e.g. Brand) after creating the product.</p>
       </Card>
     </>
   );

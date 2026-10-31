@@ -12,8 +12,8 @@ export default async function LoginPage({ searchParams }: { searchParams: Promis
   const { next } = await searchParams;
   return (
     <>
-      <h1 className="text-2xl font-semibold">Log in</h1>
-      <p className="mt-1 text-sm text-zinc-500">For companies, their teams and their customers.</p>
+      <h1 className="font-display text-[28px] font-bold tracking-tight text-ink">Log in</h1>
+      <p className="mt-1.5 text-[15px] text-ink-secondary">For companies, their teams and their customers.</p>
       <ActionForm action={loginAction} className="mt-6 space-y-4">
         <input type="hidden" name="next" value={next ?? ""} />
         <div>
@@ -29,10 +29,10 @@ export default async function LoginPage({ searchParams }: { searchParams: Promis
         </div>
         <SubmitButton className="w-full">Log in</SubmitButton>
       </ActionForm>
-      <p className="mt-6 text-sm text-zinc-600">
+      <p className="mt-6 text-sm text-ink-secondary">
         Running a subscription business? <Link href="/signup" className="link">Register your company</Link>
       </p>
-      <p className="mt-2 text-xs text-zinc-500">
+      <p className="mt-2 text-[13px] text-ink-secondary">
         Customers: use the login details emailed to you by the company you subscribe to.
       </p>
     </>

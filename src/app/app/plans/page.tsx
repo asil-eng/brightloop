@@ -46,7 +46,7 @@ export default async function PlansPage() {
                 <td>{periodLabel(p.period, p.interval)}</td>
                 <td className="text-right tabular-nums">{formatMoney(p.price)}</td>
                 <td className="text-right">{p.minQuantity}</td>
-                <td className="whitespace-nowrap text-zinc-500">{p.startDate || p.endDate ? `${formatDate(p.startDate)} → ${p.endDate ? formatDate(p.endDate) : "open"}` : "Always"}</td>
+                <td className="whitespace-nowrap text-ink-secondary">{p.startDate || p.endDate ? `${formatDate(p.startDate)} → ${p.endDate ? formatDate(p.endDate) : "open"}` : "Always"}</td>
                 <td className="text-center">{yes(p.autoClose)}</td>
                 <td className="text-center">{yes(p.closable)}</td>
                 <td className="text-center">{yes(p.pausable)}</td>

@@ -16,8 +16,8 @@ export default async function ResetPasswordPage({ searchParams }: { searchParams
   }
   return (
     <>
-      <h1 className="text-2xl font-semibold">{invite ? "Set up your account" : "Choose a new password"}</h1>
-      <p className="mt-1 text-sm text-zinc-500">{invite ? "Pick a password to finish joining the Brightloop team." : "Your new password replaces the old one."}</p>
+      <h1 className="font-display text-[28px] font-bold tracking-tight text-ink">{invite ? "Set up your account" : "Choose a new password"}</h1>
+      <p className="mt-1.5 text-[15px] text-ink-secondary">{invite ? "Pick a password to finish joining the Brightloop team." : "Your new password replaces the old one."}</p>
       <ActionForm action={resetPasswordAction} className="mt-6 space-y-4">
         <input type="hidden" name="token" value={token} />
         <PasswordWithRules label="New password" />

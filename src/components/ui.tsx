@@ -5,18 +5,22 @@ import type { ReactNode } from "react";
 // ───────────── Buttons ─────────────
 
 const variants = {
-  primary: "bg-brand-600 text-white hover:bg-brand-700 border-brand-600",
-  secondary: "bg-white text-zinc-700 hover:bg-zinc-50 border-zinc-300",
-  danger: "bg-white text-red-600 hover:bg-red-50 border-red-200",
-  accent: "bg-accent-500 text-white hover:bg-accent-600 border-accent-500",
+  primary: "bg-accent text-on-accent border-accent hover:bg-brand-700 hover:border-brand-700",
+  secondary: "bg-panel text-ink border-rule hover:bg-ground-muted hover:border-ink-secondary/30",
+  danger: "bg-panel text-red-700 border-red-200 hover:bg-red-50",
+  // Kept for existing call sites (e.g. "Pay now"): the single accent colour is the blue.
+  accent: "bg-accent text-on-accent border-accent hover:bg-brand-700 hover:border-brand-700",
 };
 
 type Variant = keyof typeof variants;
 
 export function buttonClass(variant: Variant = "secondary", size: "sm" | "md" = "md") {
   return clsx(
-    "inline-flex items-center justify-center gap-1.5 rounded-md border font-medium shadow-sm transition disabled:cursor-not-allowed disabled:opacity-50",
-    size === "sm" ? "px-2.5 py-1 text-xs" : "px-3.5 py-2 text-sm",
+    "inline-flex items-center justify-center gap-1.5 rounded-md border font-medium shadow-sm",
+    "transition-[transform,background-color,border-color,box-shadow] duration-[var(--dp-motion-interaction)] ease-out",
+    "hover:-translate-y-px hover:shadow active:translate-y-0 active:shadow-sm motion-reduce:transition-none motion-reduce:hover:translate-y-0",
+    "disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:translate-y-0",
+    size === "sm" ? "min-h-8 px-3 py-1 text-[13px]" : "min-h-10 px-4 py-2 text-[15px]",
     variants[variant],
   );
 }
@@ -62,11 +66,11 @@ export function PageHeader({
     <div className="mb-5 flex flex-wrap items-end justify-between gap-3">
       <div className="min-w-0">
         {breadcrumbs && (
-          <nav className="mb-1 flex flex-wrap items-center gap-1 text-xs text-zinc-500">
+          <nav className="mb-1 flex flex-wrap items-center gap-1 text-[13px] text-ink-secondary">
             {breadcrumbs.map((b, i) => (
               <span key={i} className="flex items-center gap-1">
                 {b.href ? (
-                  <Link href={b.href} className="hover:text-brand-600">
+                  <Link href={b.href} className="hover:text-accent">
                     {b.label}
                   </Link>
                 ) : (
@@ -77,8 +81,8 @@ export function PageHeader({
             ))}
           </nav>
         )}
-        <h1 className="truncate text-2xl font-semibold text-zinc-900">{title}</h1>
-        {subtitle && <p className="mt-0.5 text-sm text-zinc-500">{subtitle}</p>}
+        <h1 className="truncate font-display text-[28px] font-bold tracking-tight text-ink">{title}</h1>
+        {subtitle && <p className="mt-1 text-[15px] text-ink-secondary">{subtitle}</p>}
       </div>
       {actions && <div className="flex flex-wrap items-center gap-2">{actions}</div>}
     </div>
@@ -89,12 +93,12 @@ export function Card({ title, actions, children, className }: { title?: ReactNod
   return (
     <section className={clsx("card", className)}>
       {(title || actions) && (
-        <div className="flex items-center justify-between gap-2 border-b border-zinc-100 px-4 py-3">
-          {title && <h2 className="text-sm font-semibold text-zinc-800">{title}</h2>}
+        <div className="flex items-center justify-between gap-2 border-b border-rule/70 px-5 py-3.5">
+          {title && <h2 className="font-display text-base font-semibold text-ink">{title}</h2>}
           {actions}
         </div>
       )}
-      <div className="overflow-x-auto p-4">{children}</div>
+      <div className="overflow-x-auto p-5">{children}</div>
     </section>
   );
 }
@@ -104,7 +108,7 @@ export function Field({ label, children, hint, className }: { label: string; chi
     <label className={clsx("block", className)}>
       <span className="label">{label}</span>
       {children}
-      {hint && <span className="mt-1 block text-xs text-zinc-500">{hint}</span>}
+      {hint && <span className="mt-1 block text-xs text-ink-secondary">{hint}</span>}
     </label>
   );
 }
@@ -112,8 +116,8 @@ export function Field({ label, children, hint, className }: { label: string; chi
 export function Info({ label, children }: { label: string; children: ReactNode }) {
   return (
     <div>
-      <dt className="text-xs font-medium uppercase tracking-wide text-zinc-500">{label}</dt>
-      <dd className="mt-0.5 text-sm text-zinc-900">{children}</dd>
+      <dt className="text-xs font-medium uppercase tracking-wide text-ink-secondary">{label}</dt>
+      <dd className="mt-0.5 text-sm text-ink">{children}</dd>
     </div>
   );
 }
@@ -130,8 +134,8 @@ export function Alert({ kind = "error", children }: { kind?: "error" | "success"
 export function EmptyState({ title, children }: { title: string; children?: ReactNode }) {
   return (
     <div className="px-4 py-12 text-center">
-      <p className="font-medium text-zinc-700">{title}</p>
-      {children && <div className="mt-1 text-sm text-zinc-500">{children}</div>}
+      <p className="font-display font-semibold text-ink">{title}</p>
+      {children && <div className="mt-1 text-sm text-ink-secondary">{children}</div>}
     </div>
   );
 }
@@ -139,24 +143,24 @@ export function EmptyState({ title, children }: { title: string; children?: Reac
 // ───────────── Status badges ─────────────
 
 const badgeColors: Record<string, string> = {
-  DRAFT: "bg-zinc-100 text-zinc-700",
-  QUOTATION: "bg-sky-100 text-sky-800",
-  CONFIRMED: "bg-indigo-100 text-indigo-800",
+  DRAFT: "bg-ground-muted text-ink-secondary",
+  QUOTATION: "bg-brand-50 text-brand-700 ring-1 ring-inset ring-brand-200",
+  CONFIRMED: "bg-brand-100 text-brand-800",
   ACTIVE: "bg-emerald-100 text-emerald-800",
   PAUSED: "bg-amber-100 text-amber-800",
-  CLOSED: "bg-zinc-200 text-zinc-700",
+  CLOSED: "bg-rule/70 text-ink-secondary",
   PAID: "bg-emerald-100 text-emerald-800",
   CANCELLED: "bg-red-100 text-red-700",
   OVERDUE: "bg-red-100 text-red-700",
   PARTIAL: "bg-amber-100 text-amber-800",
   ADMIN: "bg-brand-100 text-brand-800",
-  STAFF: "bg-sky-100 text-sky-800",
-  CUSTOMER: "bg-zinc-100 text-zinc-700",
+  STAFF: "bg-ground-muted text-ink-secondary ring-1 ring-inset ring-rule",
+  CUSTOMER: "bg-ground-muted text-ink-secondary",
 };
 
 export function Badge({ status, label }: { status: string; label?: string }) {
   return (
-    <span className={clsx("inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium", badgeColors[status] ?? "bg-zinc-100 text-zinc-700")}>
+    <span className={clsx("inline-flex items-center whitespace-nowrap rounded-full px-2 py-0.5 text-xs font-medium", badgeColors[status] ?? "bg-ground-muted text-ink-secondary")}>
       {label ?? status.charAt(0) + status.slice(1).toLowerCase().replace(/_/g, " ")}
     </span>
   );
@@ -165,13 +169,14 @@ export function Badge({ status, label }: { status: string; label?: string }) {
 /** Odoo-style status bar: shows every stage with the current one highlighted. */
 export function StatusBar({ stages, current }: { stages: string[]; current: string }) {
   return (
-    <div className="flex overflow-hidden rounded-md border border-zinc-300 text-xs font-medium">
+    <div className="flex overflow-hidden rounded-md border border-rule bg-panel text-xs font-medium">
       {stages.map((s) => (
         <span
           key={s}
+          aria-current={s === current ? "step" : undefined}
           className={clsx(
-            "border-r border-zinc-300 px-3 py-1.5 last:border-r-0",
-            s === current ? "bg-brand-600 text-white" : "bg-white text-zinc-500",
+            "border-r border-rule px-3 py-1.5 last:border-r-0",
+            s === current ? "bg-accent text-on-accent" : "text-ink-secondary",
           )}
         >
           {s.charAt(0) + s.slice(1).toLowerCase()}
@@ -184,19 +189,19 @@ export function StatusBar({ stages, current }: { stages: string[]; current: stri
 /** Small stat link shown on records, like Odoo's smart buttons. */
 export function SmartButton({ href, label, value }: { href: string; label: string; value: ReactNode }) {
   return (
-    <Link href={href} className="flex min-w-28 flex-col rounded-md border border-zinc-200 bg-white px-3 py-2 text-sm shadow-sm hover:border-brand-200 hover:bg-brand-50">
-      <span className="font-semibold text-zinc-900">{value}</span>
-      <span className="text-xs text-zinc-500">{label}</span>
+    <Link href={href} className="flex min-w-28 flex-col rounded-lg border border-rule bg-panel px-3.5 py-2 text-sm shadow-sm transition-colors duration-[var(--dp-motion-interaction)] ease-out hover:border-brand-200 hover:bg-brand-50">
+      <span className="font-display font-semibold text-ink">{value}</span>
+      <span className="text-xs text-ink-secondary">{label}</span>
     </Link>
   );
 }
 
 export function StatCard({ label, value, hint, tone = "default", href }: { label: string; value: ReactNode; hint?: ReactNode; tone?: "default" | "danger" | "good"; href?: string }) {
   const body = (
-    <div className="card h-full p-4 transition hover:border-brand-200">
-      <p className="text-xs font-medium uppercase tracking-wide text-zinc-500">{label}</p>
-      <p className={clsx("mt-1 text-2xl font-semibold", tone === "danger" ? "text-red-600" : tone === "good" ? "text-emerald-700" : "text-zinc-900")}>{value}</p>
-      {hint && <p className="mt-0.5 text-xs text-zinc-500">{hint}</p>}
+    <div className={clsx("card h-full p-5", href && "transition-colors duration-[var(--dp-motion-interaction)] ease-out hover:border-brand-200")}>
+      <p className="text-xs font-medium uppercase tracking-wide text-ink-secondary">{label}</p>
+      <p className={clsx("mt-1.5 font-display text-[26px] font-bold leading-tight tracking-tight", tone === "danger" ? "text-red-700" : tone === "good" ? "text-emerald-700" : "text-ink")}>{value}</p>
+      {hint && <p className="mt-1 text-[13px] text-ink-secondary">{hint}</p>}
     </div>
   );
   return href ? <Link href={href}>{body}</Link> : body;

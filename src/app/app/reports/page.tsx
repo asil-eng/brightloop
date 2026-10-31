@@ -134,7 +134,7 @@ async function Revenue({ sp }: { sp: Record<string, string | string[] | undefine
   return (
     <>
       <SearchBar action="/app/reports" sp={{ ...sp, from: param(sp, "from") || from.toISOString().slice(0, 10), to: param(sp, "to") || to.toISOString().slice(0, 10) }} search={false} extraQuery="?tab=revenue" dateRange extra={<input type="hidden" name="tab" value="revenue" />} />
-      <p className="mb-3 text-sm text-zinc-500">{formatDate(from)} – {formatDate(to)}</p>
+      <p className="mb-3 text-sm text-ink-secondary">{formatDate(from)} – {formatDate(to)}</p>
       <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
         <StatCard label="Invoiced" value={formatMoney(invoiced._sum.total ?? 0)} hint={`${invoiced._count} invoices`} />
         <StatCard label="Collected" value={formatMoney(collected._sum.amount ?? 0)} hint={`${collected._count} payments`} tone="good" />
@@ -198,7 +198,7 @@ async function Overdue({ sp }: { sp: Record<string, string | string[] | undefine
                 <tr key={i.id}>
                   <td><Link className="link" href={`/app/invoices/${i.id}`}>{i.number}</Link></td>
                   <td><Link className="link" href={`/app/customers/${i.customer.id}`}>{i.customer.name}</Link></td>
-                  <td className="text-zinc-500">{i.customer.email}</td>
+                  <td className="text-ink-secondary">{i.customer.email}</td>
                   <td>{formatDate(i.dueDate)}</td>
                   <td className="text-right text-red-600">{Math.floor((today.getTime() - i.dueDate.getTime()) / 86400000)}</td>
                   <td className="text-right tabular-nums">{formatMoney(i.total - i.amountPaid)}</td>
@@ -207,7 +207,7 @@ async function Overdue({ sp }: { sp: Record<string, string | string[] | undefine
             </tbody>
           </table>
         </div>
-        {agg._count > invoices.length && <p className="mt-2 text-xs text-zinc-500">Showing the 100 oldest. Export CSV for the full list.</p>}
+        {agg._count > invoices.length && <p className="mt-2 text-xs text-ink-secondary">Showing the 100 oldest. Export CSV for the full list.</p>}
       </Card>
     </>
   );

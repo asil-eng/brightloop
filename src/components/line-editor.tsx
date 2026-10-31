@@ -161,7 +161,7 @@ export function LineEditor({
                   )}
                   {pricing && <td className="text-right tabular-nums">{formatMoney(amounts[i].subtotal)}</td>}
                   <td>
-                    <button type="button" className="text-zinc-400 hover:text-red-600" onClick={() => setLines((ls) => ls.filter((_, k) => k !== i))} aria-label="Remove line">
+                    <button type="button" className="text-ink-secondary/70 hover:text-red-600" onClick={() => setLines((ls) => ls.filter((_, k) => k !== i))} aria-label="Remove line">
                       <Trash2 size={16} />
                     </button>
                   </td>
@@ -181,9 +181,9 @@ export function LineEditor({
         </button>
         {pricing && (
           <dl className="w-64 space-y-1 text-sm">
-            <div className="flex justify-between"><dt className="text-zinc-500">Untaxed</dt><dd className="tabular-nums">{formatMoney(totals.subtotal)}</dd></div>
-            <div className="flex justify-between"><dt className="text-zinc-500">Taxes</dt><dd className="tabular-nums">{formatMoney(totals.taxAmount)}</dd></div>
-            <div className="flex justify-between border-t border-zinc-200 pt-1 font-semibold"><dt>Total</dt><dd className="tabular-nums">{formatMoney(totals.total)}</dd></div>
+            <div className="flex justify-between"><dt className="text-ink-secondary">Untaxed</dt><dd className="tabular-nums">{formatMoney(totals.subtotal)}</dd></div>
+            <div className="flex justify-between"><dt className="text-ink-secondary">Taxes</dt><dd className="tabular-nums">{formatMoney(totals.taxAmount)}</dd></div>
+            <div className="flex justify-between border-t border-rule pt-1 font-semibold"><dt>Total</dt><dd className="tabular-nums">{formatMoney(totals.total)}</dd></div>
           </dl>
         )}
       </div>

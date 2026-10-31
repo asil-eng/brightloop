@@ -87,7 +87,7 @@ export default async function SubscriptionPage({ params }: { params: Promise<{ i
             <ActionForm action={subscriptionAction} confirm="Close this subscription? No further invoices will be created." className="flex items-center gap-1">
               <input type="hidden" name="id" value={id} />
               <input type="hidden" name="op" value="close" />
-              <select name="reasonId" className="rounded-md border border-zinc-300 bg-white px-2 py-1 text-xs" aria-label="Close reason">
+              <select name="reasonId" className="rounded-md border border-rule bg-white px-2 py-1 text-xs" aria-label="Close reason">
                 <option value="">Reason…</option>
                 {reasons.map((r) => <option key={r.id} value={r.id}>{r.name}</option>)}
               </select>
@@ -123,7 +123,7 @@ export default async function SubscriptionPage({ params }: { params: Promise<{ i
               {sub.template && <Info label="Template">{sub.template.name}</Info>}
               {s === "CLOSED" && <Info label="Closed">{formatDate(sub.closedAt)}{sub.closeReason ? ` — ${sub.closeReason.name}` : ""}</Info>}
               <Info label="Plan rules">
-                <span className="text-xs text-zinc-600">
+                <span className="text-xs text-ink-secondary">
                   {[sub.plan.autoClose && "auto-close", sub.plan.closable && "closable", sub.plan.pausable && "pausable", sub.plan.renewable && "renewable"].filter(Boolean).join(" · ") || "—"}
                 </span>
               </Info>
@@ -150,7 +150,7 @@ export default async function SubscriptionPage({ params }: { params: Promise<{ i
 
           <Card title="Recent invoices" actions={<Link href={`/app/invoices?subscriptionId=${id}`} className="text-xs link">View all</Link>}>
             {invoices.length === 0 ? (
-              <p className="text-sm text-zinc-500">No invoices yet.</p>
+              <p className="text-sm text-ink-secondary">No invoices yet.</p>
             ) : (
               <table className="table">
                 <thead><tr><th>Number</th><th>Period</th><th>Due</th><th className="text-right">Total</th><th>Status</th></tr></thead>
@@ -158,7 +158,7 @@ export default async function SubscriptionPage({ params }: { params: Promise<{ i
                   {invoices.map((i) => (
                     <tr key={i.id}>
                       <td><Link className="link" href={`/app/invoices/${i.id}`}>{i.number ?? "Draft"}</Link></td>
-                      <td className="whitespace-nowrap text-zinc-600">{formatDate(i.periodStart)} – {formatDate(i.periodEnd)}</td>
+                      <td className="whitespace-nowrap text-ink-secondary">{formatDate(i.periodStart)} – {formatDate(i.periodEnd)}</td>
                       <td>{formatDate(i.dueDate)}</td>
                       <td className="text-right tabular-nums">{formatMoney(i.total)}</td>
                       <td><Badge {...invoiceBadge(i)} /></td>
@@ -173,7 +173,7 @@ export default async function SubscriptionPage({ params }: { params: Promise<{ i
         <div className="space-y-5">
           <Card title="Discounts on the next invoice">
             {discounts.length === 0 ? (
-              <p className="text-sm text-zinc-500">No discount currently applies.</p>
+              <p className="text-sm text-ink-secondary">No discount currently applies.</p>
             ) : (
               <ul className="space-y-2 text-sm">
                 {discounts.map((d) => (
@@ -189,7 +189,7 @@ export default async function SubscriptionPage({ params }: { params: Promise<{ i
                 ))}
               </ul>
             )}
-            <p className="mt-2 text-xs text-zinc-500">Applied automatically when the conditions are met.</p>
+            <p className="mt-2 text-xs text-ink-secondary">Applied automatically when the conditions are met.</p>
           </Card>
           <Chatter entityType="subscription" entityId={id} path={`/app/subscriptions/${id}`} />
         </div>
@@ -209,15 +209,15 @@ function ReadOnlyLines({ lines, totals }: { lines: { id: string; description: st
               <td>{l.description}</td>
               <td className="text-right">{l.quantity}</td>
               <td className="text-right tabular-nums">{formatMoney(l.unitPrice)}</td>
-              <td className="text-zinc-500">{l.taxes.map((t) => t.name).join(", ")}</td>
+              <td className="text-ink-secondary">{l.taxes.map((t) => t.name).join(", ")}</td>
               <td className="text-right tabular-nums">{formatMoney(l.subtotal)}</td>
             </tr>
           ))}
         </tbody>
       </table>
       <dl className="ml-auto mt-3 w-64 space-y-1 text-sm">
-        <div className="flex justify-between"><dt className="text-zinc-500">Untaxed</dt><dd>{formatMoney(totals.untaxed)}</dd></div>
-        <div className="flex justify-between"><dt className="text-zinc-500">Taxes</dt><dd>{formatMoney(totals.taxTotal)}</dd></div>
+        <div className="flex justify-between"><dt className="text-ink-secondary">Untaxed</dt><dd>{formatMoney(totals.untaxed)}</dd></div>
+        <div className="flex justify-between"><dt className="text-ink-secondary">Taxes</dt><dd>{formatMoney(totals.taxTotal)}</dd></div>
         <div className="flex justify-between font-semibold"><dt>Total</dt><dd>{formatMoney(totals.total)}</dd></div>
       </dl>
     </>

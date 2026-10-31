@@ -1,8 +1,9 @@
 import type { Metadata } from "next";
-import { Inter } from "next/font/google";
+import { Host_Grotesk, Instrument_Sans } from "next/font/google";
 import "./globals.css";
 
-const inter = Inter({ variable: "--font-inter", subsets: ["latin"] });
+const display = Host_Grotesk({ variable: "--font-host-grotesk", subsets: ["latin"], weight: ["500", "600", "700"] });
+const body = Instrument_Sans({ variable: "--font-instrument-sans", subsets: ["latin"] });
 
 export const metadata: Metadata = {
   title: { default: "Brightloop", template: "%s · Brightloop" },
@@ -12,7 +13,7 @@ export const metadata: Metadata = {
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   return (
     <html lang="en">
-      <body className={`${inter.variable} antialiased`}>{children}</body>
+      <body className={`${display.variable} ${body.variable} font-sans antialiased`}>{children}</body>
     </html>
   );
 }

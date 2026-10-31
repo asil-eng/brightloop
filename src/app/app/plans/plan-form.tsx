@@ -52,7 +52,7 @@ export function PlanForm({ action, plan, readOnly }: { action: FormAction; plan?
               <input type="checkbox" name={o.name} defaultChecked={plan ? Boolean(plan[o.name]) : o.default} className="mt-0.5" />
               <span>
                 <span className="font-medium">{o.label}</span>
-                <span className="block text-xs text-zinc-500">{o.hint}</span>
+                <span className="block text-xs text-ink-secondary">{o.hint}</span>
               </span>
             </label>
           ))}

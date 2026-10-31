@@ -30,14 +30,14 @@ export async function Chatter({ entityType, entityId, path }: { entityType: Enti
               {(a.user?.name ?? "System").charAt(0)}
             </span>
             <div className="min-w-0">
-              <p className="text-xs text-zinc-500">
-                <span className="font-medium text-zinc-700">{a.user?.name ?? "System"}</span> · {formatDateTime(a.createdAt)}
+              <p className="text-xs text-ink-secondary">
+                <span className="font-medium text-ink-secondary">{a.user?.name ?? "System"}</span> · {formatDateTime(a.createdAt)}
               </p>
-              <p className={a.isNote ? "mt-0.5 rounded-md bg-amber-50 px-2 py-1 text-zinc-800" : "text-zinc-700"}>{a.message}</p>
+              <p className={a.isNote ? "mt-0.5 rounded-md bg-amber-50 px-2 py-1 text-ink" : "text-ink-secondary"}>{a.message}</p>
             </div>
           </li>
         ))}
-        {activities.length === 0 && <li className="text-sm text-zinc-500">No activity yet.</li>}
+        {activities.length === 0 && <li className="text-sm text-ink-secondary">No activity yet.</li>}
       </ol>
     </Card>
   );

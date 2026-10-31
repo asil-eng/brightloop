@@ -8,8 +8,8 @@ export const metadata = { title: "Register your business" };
 export default function SignupPage() {
   return (
     <>
-      <h1 className="text-2xl font-semibold">Register your business</h1>
-      <p className="mt-1 text-sm text-zinc-500">Set up your company and start managing subscriptions and recurring billing.</p>
+      <h1 className="font-display text-[28px] font-bold tracking-tight text-ink">Register your business</h1>
+      <p className="mt-1.5 text-[15px] text-ink-secondary">Set up your company and start managing subscriptions and recurring billing.</p>
       <ActionForm action={registerCompanyAction} className="mt-6 space-y-4">
         <div>
           <label className="label" htmlFor="company">Company name</label>
@@ -29,9 +29,9 @@ export default function SignupPage() {
           <input id="confirm" name="confirm" type="password" required className="input" autoComplete="new-password" />
         </div>
         <SubmitButton className="w-full">Create company account</SubmitButton>
-        <p className="text-xs text-zinc-500">You&apos;ll be the administrator. You can invite your team and add your customers afterwards.</p>
+        <p className="text-[13px] text-ink-secondary">You&apos;ll be the administrator. You can invite your team and add your customers afterwards.</p>
       </ActionForm>
-      <p className="mt-6 text-sm text-zinc-600">
+      <p className="mt-6 text-sm text-ink-secondary">
         Already registered? <Link href="/login" className="link">Log in</Link>
       </p>
     </>

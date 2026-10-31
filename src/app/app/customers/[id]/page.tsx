@@ -82,9 +82,9 @@ export default async function CustomerPage({ params }: { params: Promise<{ id: s
         <div className="space-y-5">
           <Card title="Customer login">
             {customer.user?.passwordHash ? (
-              <p className="text-sm text-zinc-700">✓ Active. Logs in to the customer portal as <span className="font-medium">{customer.user.email}</span>.</p>
+              <p className="text-sm text-ink-secondary">✓ Active. Logs in to the customer portal as <span className="font-medium">{customer.user.email}</span>.</p>
             ) : (
-              <p className="mb-3 text-sm text-zinc-600">
+              <p className="mb-3 text-sm text-ink-secondary">
                 {customer.user ? "Login details were emailed. Waiting for the customer to set their password." : "This customer doesn't have a login yet."}
               </p>
             )}

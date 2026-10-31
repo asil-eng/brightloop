@@ -23,7 +23,7 @@ export function PasswordWithRules({ name = "password", label = "Password" }: { n
         {rules.map((r) => {
           const ok = r.test(value);
           return (
-            <li key={r.label} className={clsx(ok ? "text-emerald-700" : "text-zinc-500")}>
+            <li key={r.label} className={clsx(ok ? "text-emerald-700" : "text-ink-secondary")}>
               {ok ? "✓" : "○"} {r.label}
             </li>
           );

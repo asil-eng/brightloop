@@ -32,9 +32,9 @@ export default async function DiscountsPage() {
                   <tr key={d.id}>
                     <td><Link className="link" href={`/app/discounts/${d.id}`}>{d.name}</Link></td>
                     <td>{d.type === "PERCENT" ? `${d.value}%` : formatMoney(d.value)}</td>
-                    <td className="text-zinc-600">{d.scope === "PRODUCTS" ? d.products.map((p) => p.name).join(", ") : d._count.subscriptions ? `${d._count.subscriptions} subscription(s)` : "All subscriptions"}</td>
-                    <td className="text-zinc-600">{[d.minQuantity && `qty ≥ ${d.minQuantity}`, d.minPurchase && `≥ ${formatMoney(d.minPurchase)}`].filter(Boolean).join(", ") || "—"}</td>
-                    <td className="whitespace-nowrap text-zinc-600">{formatDate(d.startDate)} → {formatDate(d.endDate)}</td>
+                    <td className="text-ink-secondary">{d.scope === "PRODUCTS" ? d.products.map((p) => p.name).join(", ") : d._count.subscriptions ? `${d._count.subscriptions} subscription(s)` : "All subscriptions"}</td>
+                    <td className="text-ink-secondary">{[d.minQuantity && `qty ≥ ${d.minQuantity}`, d.minPurchase && `≥ ${formatMoney(d.minPurchase)}`].filter(Boolean).join(", ") || "—"}</td>
+                    <td className="whitespace-nowrap text-ink-secondary">{formatDate(d.startDate)} → {formatDate(d.endDate)}</td>
                     <td className="text-right">{d.usedCount}{d.usageLimit ? ` / ${d.usageLimit}` : ""}</td>
                     <td>{valid ? <Badge status="ACTIVE" label="Running" /> : <Badge status="CLOSED" label={d.active ? "Not running" : "Ended"} />}</td>
                   </tr>

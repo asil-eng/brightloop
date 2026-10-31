@@ -32,15 +32,15 @@ export default async function PortalInvoice({ params, searchParams }: { params: 
       />
       {paid && <div className="mb-4"><Alert kind="success">Payment of {paid} received — thank you! A receipt is on its way to your inbox.</Alert></div>}
       <Card>
-        <div className="flex flex-wrap justify-between gap-4 border-b border-zinc-100 pb-4">
+        <div className="flex flex-wrap justify-between gap-4 border-b border-rule/60 pb-4">
           <div>
             <p className="text-lg font-semibold text-brand-700">{company?.name}</p>
-            <p className="whitespace-pre-line text-sm text-zinc-500">{company?.address}</p>
+            <p className="whitespace-pre-line text-sm text-ink-secondary">{company?.address}</p>
           </div>
           <Badge {...invoiceBadge(inv)} />
         </div>
         <dl className="grid gap-4 py-4 sm:grid-cols-4">
-          <Info label="Billed to">{customer.name}<span className="block whitespace-pre-line text-xs text-zinc-500">{customer.address}</span></Info>
+          <Info label="Billed to">{customer.name}<span className="block whitespace-pre-line text-xs text-ink-secondary">{customer.address}</span></Info>
           <Info label="Invoice date">{formatDate(inv.invoiceDate)}</Info>
           <Info label="Due date">{formatDate(inv.dueDate)}</Info>
           <Info label="Period">{inv.periodStart ? `${formatDate(inv.periodStart)} – ${formatDate(inv.periodEnd)}` : "—"}</Info>
@@ -55,7 +55,7 @@ export default async function PortalInvoice({ params, searchParams }: { params: 
                   <td className="text-right">{l.quantity}</td>
                   <td className="text-right tabular-nums">{formatMoney(l.unitPrice)}</td>
                   <td className="text-right tabular-nums text-emerald-700">{l.discountAmount ? `−${formatMoney(l.discountAmount)}` : "—"}</td>
-                  <td className="text-zinc-500">{l.taxLabel}</td>
+                  <td className="text-ink-secondary">{l.taxLabel}</td>
                   <td className="text-right tabular-nums">{formatMoney(l.subtotal)}</td>
                 </tr>
               ))}
@@ -63,14 +63,14 @@ export default async function PortalInvoice({ params, searchParams }: { params: 
           </table>
         </div>
         <dl className="ml-auto mt-4 w-72 space-y-1 text-sm">
-          <div className="flex justify-between"><dt className="text-zinc-500">Untaxed amount</dt><dd>{formatMoney(inv.untaxed)}</dd></div>
-          <div className="flex justify-between"><dt className="text-zinc-500">Taxes</dt><dd>{formatMoney(inv.taxTotal)}</dd></div>
-          <div className="flex justify-between border-t border-zinc-200 pt-1 font-semibold"><dt>Total</dt><dd>{formatMoney(inv.total)}</dd></div>
-          <div className="flex justify-between text-zinc-500"><dt>Paid</dt><dd>{formatMoney(inv.amountPaid)}</dd></div>
+          <div className="flex justify-between"><dt className="text-ink-secondary">Untaxed amount</dt><dd>{formatMoney(inv.untaxed)}</dd></div>
+          <div className="flex justify-between"><dt className="text-ink-secondary">Taxes</dt><dd>{formatMoney(inv.taxTotal)}</dd></div>
+          <div className="flex justify-between border-t border-rule pt-1 font-semibold"><dt>Total</dt><dd>{formatMoney(inv.total)}</dd></div>
+          <div className="flex justify-between text-ink-secondary"><dt>Paid</dt><dd>{formatMoney(inv.amountPaid)}</dd></div>
           <div className="flex justify-between font-semibold"><dt>Amount due</dt><dd>{formatMoney(due)}</dd></div>
         </dl>
         {inv.payments.length > 0 && (
-          <div className="mt-5 border-t border-zinc-100 pt-4">
+          <div className="mt-5 border-t border-rule/60 pt-4">
             <p className="label">Payments</p>
             <ul className="space-y-1 text-sm">
               {inv.payments.map((p) => (

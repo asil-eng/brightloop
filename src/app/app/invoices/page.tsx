@@ -86,7 +86,7 @@ export default async function InvoicesPage({ searchParams }: { searchParams: Sea
                 <tr key={i.id}>
                   <td><Link href={`/app/invoices/${i.id}`} className="link">{i.number ?? "Draft"}</Link></td>
                   <td>{i.customer.name}</td>
-                  <td className="text-zinc-500">{i.subscription?.number ?? "—"}</td>
+                  <td className="text-ink-secondary">{i.subscription?.number ?? "—"}</td>
                   <td className="whitespace-nowrap">{formatDate(i.invoiceDate)}</td>
                   <td className="whitespace-nowrap">{formatDate(i.dueDate)}</td>
                   <td className="text-right tabular-nums">{formatMoney(i.total)}</td>

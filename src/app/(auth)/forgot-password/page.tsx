@@ -7,8 +7,8 @@ export const metadata = { title: "Forgot password" };
 export default function ForgotPasswordPage() {
   return (
     <>
-      <h1 className="text-2xl font-semibold">Forgot your password?</h1>
-      <p className="mt-1 text-sm text-zinc-500">Enter your email and we&apos;ll send you a link to reset it.</p>
+      <h1 className="font-display text-[28px] font-bold tracking-tight text-ink">Forgot your password?</h1>
+      <p className="mt-1.5 text-[15px] text-ink-secondary">Enter your email and we&apos;ll send you a link to reset it.</p>
       <ActionForm action={forgotPasswordAction} className="mt-6 space-y-4">
         <div>
           <label className="label" htmlFor="email">Email</label>

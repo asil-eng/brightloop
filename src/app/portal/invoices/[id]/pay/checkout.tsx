@@ -17,7 +17,11 @@ export function Checkout({ invoiceId, amount }: { invoiceId: string; amount: str
             key={m}
             type="button"
             onClick={() => setMethod(m)}
-            className={clsx("rounded-md border px-3 py-2 text-sm font-medium", method === m ? "border-brand-600 bg-brand-50 text-brand-700" : "border-zinc-300 bg-white text-zinc-600")}
+            aria-pressed={method === m}
+            className={clsx(
+              "min-h-10 rounded-md border px-3 py-2 text-sm font-medium transition-colors duration-[var(--dp-motion-interaction)] ease-out",
+              method === m ? "border-accent bg-accent text-on-accent" : "border-rule bg-panel text-ink hover:bg-ground-muted",
+            )}
           >
             {m === "CARD" ? "💳 Card" : "📱 UPI"}
           </button>

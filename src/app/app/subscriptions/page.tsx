@@ -99,11 +99,11 @@ async function List({ where, sp, page }: { where: Prisma.SubscriptionWhereInput;
                 <td><Link href={`/app/subscriptions/${s.id}`} className="link">{s.number}</Link></td>
                 <td>
                   <div>{s.customer.name}</div>
-                  {s.customer.company && <div className="text-xs text-zinc-500">{s.customer.company}</div>}
+                  {s.customer.company && <div className="text-xs text-ink-secondary">{s.customer.company}</div>}
                 </td>
                 <td>
                   {s.plan.name}
-                  <div className="text-xs text-zinc-500">{periodLabel(s.plan.period, s.plan.interval)}</div>
+                  <div className="text-xs text-ink-secondary">{periodLabel(s.plan.period, s.plan.interval)}</div>
                 </td>
                 <td className="whitespace-nowrap">{formatDate(s.startDate)}</td>
                 <td className="whitespace-nowrap">{formatDate(s.expiryDate)}</td>
@@ -140,21 +140,21 @@ async function Kanban({ where }: { where: Prisma.SubscriptionWhereInput }) {
   return (
     <div className="flex gap-3 overflow-x-auto pb-4">
       {columns.map((c) => (
-        <div key={c.status} className="w-72 shrink-0 rounded-lg bg-zinc-100 p-2">
+        <div key={c.status} className="w-72 shrink-0 rounded-panel border border-rule/70 bg-ground p-2">
           <div className="mb-2 flex items-center justify-between px-1">
             <Badge status={c.status} />
-            <span className="text-xs text-zinc-500">{c.count.toLocaleString("en-IN")} · {formatMoney(c.sum)}</span>
+            <span className="text-xs text-ink-secondary">{c.count.toLocaleString("en-IN")} · {formatMoney(c.sum)}</span>
           </div>
           <div className="space-y-2">
             {c.items.map((s) => (
-              <Link key={s.id} href={`/app/subscriptions/${s.id}`} className="block rounded-md border border-zinc-200 bg-white p-3 text-sm shadow-sm hover:border-brand-200">
+              <Link key={s.id} href={`/app/subscriptions/${s.id}`} className="block rounded-lg border border-rule bg-panel p-3 text-sm shadow-sm hover:border-brand-200">
                 <div className="flex justify-between gap-2">
                   <span className="font-medium">{s.customer.name}</span>
-                  <span className="text-xs text-zinc-400">{s.number}</span>
+                  <span className="text-xs text-ink-secondary/70">{s.number}</span>
                 </div>
-                <div className="mt-1 flex justify-between text-xs text-zinc-500">
+                <div className="mt-1 flex justify-between text-xs text-ink-secondary">
                   <span>{s.plan.name}</span>
-                  <span className="font-medium text-zinc-700">{formatMoney(s.total)}</span>
+                  <span className="font-medium text-ink-secondary">{formatMoney(s.total)}</span>
                 </div>
               </Link>
             ))}

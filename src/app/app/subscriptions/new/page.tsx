@@ -55,12 +55,12 @@ export default async function NewSubscriptionPage({ searchParams }: { searchPara
       <PageHeader title="New quotation" breadcrumbs={[{ label: "Subscriptions", href: "/app/subscriptions" }, { label: "New" }]} />
       {templates.length > 0 && (
         <div className="mb-4 flex flex-wrap items-center gap-2 text-sm">
-          <span className="text-zinc-500">Start from a template:</span>
+          <span className="text-ink-secondary">Start from a template:</span>
           {templates.map((t) => (
             <Link
               key={t.id}
               href={`/app/subscriptions/new?templateId=${t.id}${customerId ? `&customerId=${customerId}` : ""}`}
-              className={`rounded-full border px-3 py-1 ${t.id === templateId ? "border-brand-600 bg-brand-600 text-white" : "border-zinc-300 bg-white hover:border-brand-200"}`}
+              className={`rounded-full border px-3 py-1 ${t.id === templateId ? "border-accent bg-accent text-on-accent" : "border-rule bg-panel text-ink hover:border-brand-200"}`}
             >
               {t.name}
             </Link>

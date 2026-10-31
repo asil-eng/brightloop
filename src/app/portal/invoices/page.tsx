@@ -29,7 +29,7 @@ export default async function PortalInvoices({ searchParams }: { searchParams: S
                 {invoices.map((i) => (
                   <tr key={i.id}>
                     <td><Link className="link" href={`/portal/invoices/${i.id}`}>{i.number}</Link></td>
-                    <td className="text-zinc-500">{i.subscription?.number ?? "—"}</td>
+                    <td className="text-ink-secondary">{i.subscription?.number ?? "—"}</td>
                     <td>{formatDate(i.invoiceDate)}</td>
                     <td>{formatDate(i.dueDate)}</td>
                     <td className="text-right tabular-nums">{formatMoney(i.total)}</td>

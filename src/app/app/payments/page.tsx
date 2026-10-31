@@ -62,8 +62,8 @@ export default async function PaymentsPage({ searchParams }: { searchParams: Sea
                   <td>{p.invoice.customer.name}</td>
                   <td><Link className="link" href={`/app/invoices/${p.invoice.id}`}>{p.invoice.number}</Link></td>
                   <td>{METHOD_LABEL[p.method]}</td>
-                  <td className="text-zinc-500">{p.reference || "—"}</td>
-                  <td className="text-zinc-500">{p.note || "—"}</td>
+                  <td className="text-ink-secondary">{p.reference || "—"}</td>
+                  <td className="text-ink-secondary">{p.note || "—"}</td>
                   <td className="text-right tabular-nums">{formatMoney(p.amount)}</td>
                 </tr>
               ))}

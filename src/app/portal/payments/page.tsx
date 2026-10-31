@@ -30,7 +30,7 @@ export default async function PortalPayments({ searchParams }: { searchParams: S
                   <td>{formatDate(p.date)}</td>
                   <td><Link className="link" href={`/portal/invoices/${p.invoice.id}`}>{p.invoice.number}</Link></td>
                   <td>{METHOD_LABEL[p.method]}</td>
-                  <td className="text-zinc-500">{p.reference || "—"}</td>
+                  <td className="text-ink-secondary">{p.reference || "—"}</td>
                   <td className="text-right tabular-nums">{formatMoney(p.amount)}</td>
                 </tr>
               ))}

@@ -31,7 +31,7 @@ export default async function PortalHome() {
 
       {quotes.length > 0 && (
         <Card title="Quotations waiting for you" className="mt-5">
-          <ul className="divide-y divide-zinc-100">
+          <ul className="divide-y divide-rule/60">
             {quotes.map((q) => (
               <li key={q.id} className="flex flex-wrap items-center justify-between gap-2 py-2">
                 <span>{q.number} · {q.plan.name} · {formatMoney(q.total)} — valid until {formatDate(q.quoteValidUntil)}</span>

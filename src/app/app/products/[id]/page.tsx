@@ -38,7 +38,7 @@ export default async function ProductPage({ params }: { params: Promise<{ id: st
         <div className="space-y-5 xl:col-span-2">
           <Card title="Variants">
             {product.variants.length === 0 ? (
-              <p className="text-sm text-zinc-500">No variants. Add an attribute below to create them.</p>
+              <p className="text-sm text-ink-secondary">No variants. Add an attribute below to create them.</p>
             ) : (
               <table className="table">
                 <thead>
@@ -64,7 +64,7 @@ export default async function ProductPage({ params }: { params: Promise<{ id: st
           <Card title="Attributes">
             <div className="space-y-4">
               {product.attributes.map((a) => (
-                <div key={a.id} className="rounded-md border border-zinc-200 p-3">
+                <div key={a.id} className="rounded-md border border-rule p-3">
                   <ActionForm action={saveAttribute} className="space-y-2">
                     <fieldset disabled={!isAdmin} className="space-y-2">
                       <input type="hidden" name="productId" value={product.id} />
@@ -83,7 +83,7 @@ export default async function ProductPage({ params }: { params: Promise<{ id: st
                 </div>
               ))}
               {isAdmin && (
-                <ActionForm action={saveAttribute} className="space-y-2 rounded-md border border-dashed border-zinc-300 p-3">
+                <ActionForm action={saveAttribute} className="space-y-2 rounded-md border border-dashed border-rule p-3">
                   <p className="text-sm font-medium">Add an attribute</p>
                   <input type="hidden" name="productId" value={product.id} />
                   <input name="name" placeholder="e.g. Brand" required className="input" />
@@ -91,7 +91,7 @@ export default async function ProductPage({ params }: { params: Promise<{ id: st
                   <SubmitButton size="sm">Add attribute</SubmitButton>
                 </ActionForm>
               )}
-              {!isAdmin && product.attributes.length === 0 && <p className="text-sm text-zinc-500">No attributes.</p>}
+              {!isAdmin && product.attributes.length === 0 && <p className="text-sm text-ink-secondary">No attributes.</p>}
             </div>
           </Card>
           {!product.active && <Badge status="CLOSED" label="Archived" />}

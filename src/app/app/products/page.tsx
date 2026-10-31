@@ -66,9 +66,9 @@ export default async function ProductsPage({ searchParams }: { searchParams: Sea
                   </td>
                   <td>{{ SERVICE: "Service", ADDON: "Add-on", GOODS: "Goods" }[p.type]}</td>
                   <td className="text-right tabular-nums">{formatMoney(p.salesPrice)}</td>
-                  <td className="text-right tabular-nums text-zinc-500">{formatMoney(p.costPrice)}</td>
+                  <td className="text-right tabular-nums text-ink-secondary">{formatMoney(p.costPrice)}</td>
                   <td>{p._count.variants || "—"}</td>
-                  <td className="text-zinc-500">{p.taxes.map((t) => t.name).join(", ") || "—"}</td>
+                  <td className="text-ink-secondary">{p.taxes.map((t) => t.name).join(", ") || "—"}</td>
                   <td>{p.active ? <Badge status="ACTIVE" /> : <Badge status="CLOSED" label="Archived" />}</td>
                 </tr>
               ))}

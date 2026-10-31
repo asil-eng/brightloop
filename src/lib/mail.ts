@@ -37,11 +37,11 @@ function escapeHtml(s: string) {
 function renderHtml(o: SendOptions, companyName: string) {
   const body = o.paragraphs.map((p) => `<p style="margin:0 0 14px;line-height:1.5">${escapeHtml(p)}</p>`).join("");
   const button = o.button
-    ? `<p style="margin:24px 0"><a href="${escapeHtml(o.button.url)}" style="background:#714B67;color:#fff;padding:12px 20px;border-radius:6px;text-decoration:none;font-weight:600">${escapeHtml(o.button.label)}</a></p>`
+    ? `<p style="margin:24px 0"><a href="${escapeHtml(o.button.url)}" style="background:#074ce0;color:#fff;padding:12px 20px;border-radius:6px;text-decoration:none;font-weight:600">${escapeHtml(o.button.label)}</a></p>`
     : "";
-  return `<div style="font-family:Arial,Helvetica,sans-serif;background:#f4f4f6;padding:24px">
-  <div style="max-width:560px;margin:0 auto;background:#fff;border-radius:8px;overflow:hidden;border:1px solid #e5e5ea">
-    <div style="background:#714B67;color:#fff;padding:16px 24px;font-weight:700;font-size:18px">${escapeHtml(companyName)}</div>
+  return `<div style="font-family:Arial,Helvetica,sans-serif;background:#f3f4f6;padding:24px">
+  <div style="max-width:560px;margin:0 auto;background:#fff;border-radius:12px;overflow:hidden;border:1px solid #dde0e6">
+    <div style="background:#16191f;color:#fcfcfd;padding:16px 24px;font-weight:700;font-size:18px">${escapeHtml(companyName)}</div>
     <div style="padding:24px;color:#222">
       <h2 style="margin:0 0 16px;font-size:20px">${escapeHtml(o.heading)}</h2>
       ${body}${button}

@@ -60,7 +60,7 @@ export default async function PortalSubscription({ params }: { params: Promise<{
               </div>
             </div>
           ) : (
-            <p className="text-sm text-zinc-600">This quotation expired on {formatDate(sub.quoteValidUntil)}. Please contact us for a new one.</p>
+            <p className="text-sm text-ink-secondary">This quotation expired on {formatDate(sub.quoteValidUntil)}. Please contact us for a new one.</p>
           )}
         </Card>
       )}
@@ -83,7 +83,7 @@ export default async function PortalSubscription({ params }: { params: Promise<{
               </ActionForm>
             )}
             {!sub.plan.pausable && !sub.plan.closable && !(sub.plan.renewable && sub.expiryDate) && (
-              <p className="text-sm text-zinc-500">This plan runs for a fixed term and can&apos;t be changed online.</p>
+              <p className="text-sm text-ink-secondary">This plan runs for a fixed term and can&apos;t be changed online.</p>
             )}
           </div>
         </Card>
@@ -111,7 +111,7 @@ export default async function PortalSubscription({ params }: { params: Promise<{
                       <td>{l.description}</td>
                       <td className="text-right">{l.quantity}</td>
                       <td className="text-right tabular-nums">{formatMoney(l.unitPrice)}</td>
-                      <td className="text-zinc-500">{l.taxes.map((t) => t.name).join(", ")}</td>
+                      <td className="text-ink-secondary">{l.taxes.map((t) => t.name).join(", ")}</td>
                       <td className="text-right tabular-nums">{formatMoney(l.subtotal)}</td>
                     </tr>
                   ))}
@@ -119,8 +119,8 @@ export default async function PortalSubscription({ params }: { params: Promise<{
               </table>
             </div>
             <dl className="ml-auto mt-3 w-64 space-y-1 text-sm">
-              <div className="flex justify-between"><dt className="text-zinc-500">Untaxed</dt><dd>{formatMoney(sub.untaxed)}</dd></div>
-              <div className="flex justify-between"><dt className="text-zinc-500">Taxes</dt><dd>{formatMoney(sub.taxTotal)}</dd></div>
+              <div className="flex justify-between"><dt className="text-ink-secondary">Untaxed</dt><dd>{formatMoney(sub.untaxed)}</dd></div>
+              <div className="flex justify-between"><dt className="text-ink-secondary">Taxes</dt><dd>{formatMoney(sub.taxTotal)}</dd></div>
               <div className="flex justify-between font-semibold"><dt>Total per period</dt><dd>{formatMoney(sub.total)}</dd></div>
             </dl>
           </Card>
@@ -132,7 +132,7 @@ export default async function PortalSubscription({ params }: { params: Promise<{
                   {invoices.map((i) => (
                     <tr key={i.id}>
                       <td><Link className="link" href={`/portal/invoices/${i.id}`}>{i.number}</Link></td>
-                      <td className="text-zinc-600">{formatDate(i.periodStart)} – {formatDate(i.periodEnd)}</td>
+                      <td className="text-ink-secondary">{formatDate(i.periodStart)} – {formatDate(i.periodEnd)}</td>
                       <td className="text-right tabular-nums">{formatMoney(i.total)}</td>
                       <td><Badge {...invoiceBadge(i)} /></td>
                       <td className="text-right">{i.status === "CONFIRMED" && <LinkButton size="sm" variant="accent" href={`/portal/invoices/${i.id}/pay`}>Pay</LinkButton>}</td>
@@ -146,16 +146,16 @@ export default async function PortalSubscription({ params }: { params: Promise<{
 
         {running && addons.length > 0 && (
           <Card title="Add-ons">
-            <p className="mb-3 text-sm text-zinc-500">Switch add-ons on or off. Changes appear on your next invoice.</p>
+            <p className="mb-3 text-sm text-ink-secondary">Switch add-ons on or off. Changes appear on your next invoice.</p>
             <ul className="space-y-3">
               {addons.map((a) => {
                 const line = activeAddons.get(a.id);
                 return (
-                  <li key={a.id} className="rounded-md border border-zinc-200 p-3">
+                  <li key={a.id} className="rounded-md border border-rule p-3">
                     <div className="flex items-start justify-between gap-2">
                       <div>
                         <p className="font-medium">{a.name}</p>
-                        <p className="text-xs text-zinc-500">{formatMoney(a.salesPrice)} per {UNIT[sub.plan.period]} · {a.notes.replace(/^Add-on:\s*/, "")}</p>
+                        <p className="text-xs text-ink-secondary">{formatMoney(a.salesPrice)} per {UNIT[sub.plan.period]} · {a.notes.replace(/^Add-on:\s*/, "")}</p>
                       </div>
                       {line && <Badge status="ACTIVE" label={`On ×${line.quantity}`} />}
                     </div>
