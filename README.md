@@ -194,4 +194,4 @@ e2e/                     Playwright tests
 `Organization` (company) · `User` · `Session` · `PasswordResetToken` · `Customer` · `Product` · `Attribute` · `AttributeValue` ·
 `ProductVariant` · `Tax` · `RecurringPlan` · `PaymentTerm` · `QuotationTemplate` / `TemplateLine` · `Subscription` /
 `SubscriptionLine` · `Discount` · `Invoice` / `InvoiceLine` · `Payment` · `CloseReason` · `Activity` (chatter) ·
-`EmailLog` · `Sequence` (document numbers)
+`EmailLog` · `Sequence` (document numbers) · `RateLimitHit` (login and reset rate limits)
