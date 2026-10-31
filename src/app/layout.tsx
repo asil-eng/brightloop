@@ -1,9 +1,20 @@
 import type { Metadata } from "next";
-import { Host_Grotesk, Instrument_Sans } from "next/font/google";
+import localFont from "next/font/local";
 import "./globals.css";
 
-const display = Host_Grotesk({ variable: "--font-host-grotesk", subsets: ["latin"], weight: ["500", "600", "700"] });
-const body = Instrument_Sans({ variable: "--font-instrument-sans", subsets: ["latin"] });
+// Fonts are bundled from npm (@fontsource-variable) so builds never depend on downloading them.
+const display = localFont({
+  src: "../../node_modules/@fontsource-variable/host-grotesk/files/host-grotesk-latin-wght-normal.woff2",
+  variable: "--font-host-grotesk",
+  weight: "300 800",
+  display: "swap",
+});
+const body = localFont({
+  src: "../../node_modules/@fontsource-variable/instrument-sans/files/instrument-sans-latin-wght-normal.woff2",
+  variable: "--font-instrument-sans",
+  weight: "400 700",
+  display: "swap",
+});
 
 export const metadata: Metadata = {
   title: { default: "Brightloop", template: "%s · Brightloop" },

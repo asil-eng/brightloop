@@ -17,6 +17,8 @@
     "vercel-build": "prisma generate && prisma migrate deploy && next build"
   },
   "dependencies": {
+    "@fontsource-variable/host-grotesk": "^5.3.0",
+    "@fontsource-variable/instrument-sans": "^5.3.0",
     "@prisma/client": "^6.19.3",
     "bcryptjs": "^3.0.3",
     "clsx": "^2.1.1",
