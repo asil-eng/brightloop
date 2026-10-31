@@ -1,10 +1,13 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { redirect } from "next/navigation";
+import { redirect, unstable_rethrow } from "next/navigation";
 import { hashPassword, passwordError, requireCustomer, verifyPassword } from "@/lib/auth";
 import { UserError, int, required, safeAction, str } from "@/lib/action";
-import { registerPayment, recomputeSubscription } from "@/lib/billing";
+import { BillingError, registerPayment, recomputeSubscription } from "@/lib/billing";
+import { rootDb } from "@/lib/db";
+import { unseal } from "@/lib/secret-box";
+import { RazorpayError, capturePayment, createOrder, fetchOrder, fetchPayment, verifySignature } from "@/lib/razorpay";
 import { logActivity } from "@/lib/activity";
 import { closeSubscription, confirmSubscription, pauseSubscription, renew, resumeSubscription } from "@/lib/subscriptions";
 import { formatMoney } from "@/lib/money";
@@ -153,3 +156,74 @@ export const changePassword = safeAction(async (data) => {
   await db.user.update({ where: { id: user.id }, data: { passwordHash: await hashPassword(password) } });
   return { ok: "Password changed." };
 });
+
+// ───────────── Razorpay (test mode) ─────────────
+
+async function razorpayFor(invoiceId: string) {
+  const user = await requireCustomer();
+  const { db } = user;
+  const org = await db.organization.findFirstOrThrow();
+  if (!org.razorpayKeyId || !org.razorpayKeySecret) throw new UserError("Online card payments aren't set up for this company.");
+  const invoice = await db.invoice.findFirst({ where: { id: invoiceId, customerId: user.customer.id } });
+  if (!invoice) throw new UserError("Invoice not found.");
+  return { user, db, org, invoice, keys: { keyId: org.razorpayKeyId, keySecret: unseal(org.razorpayKeySecret) } };
+}
+
+/** Create a Razorpay order for exactly what is due on this invoice. */
+export async function startRazorpayPayment(invoiceId: string) {
+  try {
+    const { user, org, invoice, keys } = await razorpayFor(invoiceId);
+    if (invoice.status !== "CONFIRMED") return { error: "This invoice doesn't need paying." };
+    const due = invoice.total - invoice.amountPaid;
+    const order = await createOrder(keys, { amount: due, receipt: invoice.number ?? invoice.id, notes: { invoiceId: invoice.id, orgId: org.id } });
+    return {
+      ok: true as const,
+      keyId: keys.keyId,
+      orderId: order.id,
+      amount: order.amount,
+      company: org.name,
+      description: `Invoice ${invoice.number}`,
+      prefill: { name: user.customer.name, email: user.customer.email, contact: user.customer.phone },
+    };
+  } catch (e) {
+    return { error: e instanceof UserError || e instanceof RazorpayError ? e.message : "Couldn't start the payment. Please try again." };
+  }
+}
+
+/**
+ * Called by Checkout's success handler. Nothing from the browser is trusted on its own: the signature is
+ * checked with the company's secret, and the order and payment are fetched from Razorpay to confirm they
+ * belong to this invoice and amount before the payment is recorded.
+ */
+export async function confirmRazorpayPayment(input: { invoiceId: string; orderId: string; paymentId: string; signature: string }) {
+  let paid = 0;
+  try {
+    const { user, db, invoice, keys } = await razorpayFor(input.invoiceId);
+    if (!verifySignature(input.orderId, input.paymentId, input.signature, keys.keySecret)) throw new UserError("The payment couldn't be verified.");
+    if (await rootDb.payment.findUnique({ where: { gatewayPaymentId: input.paymentId } })) {
+      redirect(`/portal/invoices/${invoice.id}`); // already recorded (e.g. a double callback)
+    }
+    const [order, payment0] = await Promise.all([fetchOrder(keys, input.orderId), fetchPayment(keys, input.paymentId)]);
+    if (order.notes?.invoiceId !== invoice.id || payment0.order_id !== order.id || payment0.amount !== order.amount) {
+      throw new UserError("The payment doesn't match this invoice.");
+    }
+    const payment = payment0.status === "authorized" ? await capturePayment(keys, payment0.id, payment0.amount) : payment0;
+    if (payment.status !== "captured") throw new UserError(`The payment is ${payment.status}, not captured.`);
+    const method = payment.method === "upi" ? "UPI" : payment.method === "card" ? "CARD" : payment.method === "netbanking" ? "BANK_TRANSFER" : "ONLINE";
+    await registerPayment(db, {
+      invoiceId: invoice.id,
+      amount: Math.min(payment.amount, invoice.total - invoice.amountPaid),
+      method,
+      date: new Date(),
+      note: `Paid online with Razorpay (${payment.method}, test mode)`,
+      reference: payment.id,
+      gatewayPaymentId: payment.id,
+      userId: user.id,
+    });
+    paid = payment.amount;
+  } catch (e) {
+    unstable_rethrow(e);
+    return { error: e instanceof UserError || e instanceof RazorpayError || e instanceof BillingError ? e.message : "Couldn't record the payment. Contact the company if money was taken." };
+  }
+  redirect(`/portal/invoices/${input.invoiceId}?paid=${encodeURIComponent(formatMoney(paid))}`);
+}

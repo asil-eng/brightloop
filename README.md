@@ -15,7 +15,8 @@ for **any business that earns its money every month**, with a portal where its c
 ![Prisma](https://img.shields.io/badge/Prisma-2d3748?logo=prisma&logoColor=white)
 ![Tailwind CSS](https://img.shields.io/badge/Tailwind_CSS_4-06b6d4?logo=tailwindcss&logoColor=white)
 ![Vercel](https://img.shields.io/badge/Deployed_on-Vercel-000?logo=vercel&logoColor=white)
-![Tests](https://img.shields.io/badge/tests-21_unit_·_7_end--to--end-047857)
+![Razorpay](https://img.shields.io/badge/Razorpay-test_mode-0c2451?logo=razorpay&logoColor=white)
+![Tests](https://img.shields.io/badge/tests-23_unit_·_7_end--to--end-047857)
 
 <br>
 
@@ -33,7 +34,7 @@ for **any business that earns its money every month**, with a portal where its c
 |---|---|
 | 🌐 **Live app** | **https://brightloop-steel.vercel.app** |
 | 🏢 **Start** | Register your business at **[/signup](https://brightloop-steel.vercel.app/signup)**. You become its admin. |
-| 💳 **Demo payments** | Card `4242 4242 4242 4242` (any future expiry, any CVC) pays; `4000 0000 0000 0002` is declined. No real money moves. |
+| 💳 **Payments** | **Razorpay (test mode):** connect your Razorpay test keys in **Settings → Payments**, then customers pay with Razorpay's real checkout. Choose **Netbanking → Success** on the test bank page, or card `4111 1111 1111 1111`. Without Razorpay, a demo checkout is used (`4242 4242 4242 4242` pays, `4000 0000 0000 0002` is declined). No real money moves. |
 | 🧪 **Demo data** | The live site starts empty for real companies. Run it locally with `npm run db:seed` for two demo companies with a year of history ([logins below](#demo-logins)). |
 
 ## How it works
@@ -185,7 +186,12 @@ flowchart LR
 
 - Payments are recorded with their **method, amount, date, reference and note**, against the right invoice.
 - **Part payments** are tracked until the invoice is fully paid. Every payment emails a receipt.
-- **Customers pay online** from the portal by card or UPI (a demo provider, like Odoo's *Demo* provider).
+- **Customers pay online with Razorpay** (test mode): each company connects **its own Razorpay keys** in **Settings →
+  Payments** (checked with Razorpay, stored encrypted, test keys only), so the money goes to the company's account.
+  Customers get Razorpay's real checkout (card, UPI, netbanking). Before anything is recorded, the server **verifies
+  Razorpay's signature**, confirms the order and amount belong to that invoice, and captures the payment. The same
+  Razorpay payment can never be recorded twice.
+- Companies that haven't connected Razorpay get a **demo checkout** (like Odoo's *Demo* provider).
 - The team sees at a glance what's **paid, outstanding and overdue**.
 
 ### 👤 Customer portal
@@ -274,6 +280,7 @@ flowchart LR
     J --> DB
     V -->|company's own SMTP| M1[Customer emails<br>invoices · logins · receipts]
     V -->|platform SMTP, capped| M2[Account emails<br>resets · welcomes · invites]
+    V <-->|company's own keys:<br>orders · verify · capture| R[Razorpay<br>test mode]
 ```
 
 | Layer | Choice |
@@ -281,6 +288,7 @@ flowchart LR
 | App | **Next.js 15** (App Router, server components, server actions), **TypeScript** |
 | Data | **PostgreSQL** with **Prisma**: Docker locally, **Neon** in production |
 | UI | **Tailwind CSS 4**, Host Grotesk + Instrument Sans, **Recharts**, lucide icons |
+| Payments | **Razorpay** Orders + Checkout (test mode), per-company keys, server-side signature verification |
 | Email and PDFs | **Nodemailer** (each company's SMTP + a capped platform sender), **pdf-lib** |
 | Hosting | **Vercel**, functions pinned next to the database, **Vercel Cron** for daily billing |
 | Tests | Node's test runner (unit + integration) and **Playwright** (end-to-end) |
@@ -354,7 +362,7 @@ millisecond instead of crossing an ocean.
 ## Tests and performance
 
 ```bash
-npm test            # 21 unit + integration tests (separate brightloop_test database)
+npm test            # 23 unit + integration tests (separate brightloop_test database)
 npm run test:e2e    # 7 Playwright browser tests against the seeded dev database
 npm run typecheck && npm run lint
 ```
@@ -364,6 +372,8 @@ npm run typecheck && npm run lint
 - **Isolation:** another company can't read, list, total, update or pay a company's records; numbering is per
   company; records can't exist without a company.
 - **Email:** passwords encrypted and tamper-proof; customer emails never fall back to the platform sender.
+- **Razorpay:** checkout results are only trusted with a valid signature; only test keys are accepted. A full payment
+  through Razorpay's test checkout (netbanking → Success) was verified end to end.
 - **End to end:** company registration, forgot password, staff adding a customer who sets a password from the emailed
   link, template → quotation → active subscription → invoice, online payment (declined, then approved), add-ons,
   part payments, cross-company access blocked, and login lockout.
@@ -390,7 +400,8 @@ src/
     company.ts           company registration (workspace + admin + defaults)
     portal-access.ts     customer login emails (one-time set-password link)
     mail.ts, pdf.ts      email (company / platform senders) and invoice PDFs
-    secret-box.ts        AES-256-GCM for companies' email passwords
+    razorpay.ts          Razorpay orders, signature checks and capture
+    secret-box.ts        AES-256-GCM for companies' email passwords and Razorpay secrets
     rate-limit.ts        login, reset and registration limits
     metrics.ts           MRR/ARR, revenue and dashboard numbers
   app/

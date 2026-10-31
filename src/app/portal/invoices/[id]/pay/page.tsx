@@ -4,6 +4,7 @@ import { formatMoney } from "@/lib/money";
 import { formatDate } from "@/lib/dates";
 import { Card, PageHeader } from "@/components/ui";
 import { Checkout } from "./checkout";
+import { RazorpayCheckout } from "./razorpay-checkout";
 
 export const metadata = { title: "Pay invoice" };
 
@@ -28,10 +29,21 @@ export default async function PayPage({ params }: { params: Promise<{ id: string
           <p className="mt-4 text-xs text-ink-secondary">The money goes straight to {org.name}. Your card details are never stored.</p>
         </Card>
         <Card className="md:col-span-3" title="Payment details">
-          <Checkout invoiceId={id} amount={formatMoney(due)} />
-          <p className="mt-4 rounded-md bg-amber-50 px-3 py-2 text-xs text-amber-800">
-            Demo payment provider: no real money moves. Use any card such as 4242 4242 4242 4242 with a future expiry. Card 4000 0000 0000 0002 is declined.
-          </p>
+          {org.razorpayKeyId ? (
+            <>
+              <RazorpayCheckout invoiceId={id} amount={formatMoney(due)} />
+              <p className="mt-4 rounded-md bg-amber-50 px-3 py-2 text-xs text-amber-800">
+                Razorpay test mode: no real money moves. Choose Netbanking and press Success on the test bank page, or use card 4111 1111 1111 1111 (any future expiry and CVV).
+              </p>
+            </>
+          ) : (
+            <>
+              <Checkout invoiceId={id} amount={formatMoney(due)} />
+              <p className="mt-4 rounded-md bg-amber-50 px-3 py-2 text-xs text-amber-800">
+                Demo payment provider: no real money moves. Use any card such as 4242 4242 4242 4242 with a future expiry. Card 4000 0000 0000 0002 is declined.
+              </p>
+            </>
+          )}
         </Card>
       </div>
     </>

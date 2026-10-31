@@ -89,6 +89,12 @@ model Organization {
   smtpFrom         String    @default("")
   emailConnectedAt DateTime?
 
+  // The company's own Razorpay account (test mode). Customers' online payments go to it;
+  // the key secret is encrypted like the email password.
+  razorpayKeyId       String    @default("")
+  razorpayKeySecret   String    @default("")
+  razorpayConnectedAt DateTime?
+
   users         User[]
   customers     Customer[]
   taxes         Tax[]
@@ -492,20 +498,22 @@ enum PaymentMethod {
 }
 
 model Payment {
-  orgId       String        @default("") // set by scopedDb()
-  org         Organization  @relation(fields: [orgId], references: [id], onDelete: Cascade)
-  id          String        @id @default(cuid())
-  number      String
-  invoiceId   String
-  amount      Int
-  method      PaymentMethod
-  date        DateTime      @default(now())
-  note        String        @default("")
-  reference   String        @default("")
-  createdById String?
-  createdAt   DateTime      @default(now())
-  invoice     Invoice       @relation(fields: [invoiceId], references: [id])
-  createdBy   User?         @relation(fields: [createdById], references: [id])
+  orgId            String        @default("") // set by scopedDb()
+  org              Organization  @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  id               String        @id @default(cuid())
+  number           String
+  invoiceId        String
+  amount           Int
+  method           PaymentMethod
+  date             DateTime      @default(now())
+  note             String        @default("")
+  reference        String        @default("")
+  // Razorpay payment id for online payments: unique, so the same payment can never be recorded twice.
+  gatewayPaymentId String?       @unique
+  createdById      String?
+  createdAt        DateTime      @default(now())
+  invoice          Invoice       @relation(fields: [invoiceId], references: [id])
+  createdBy        User?         @relation(fields: [createdById], references: [id])
 
   @@unique([orgId, number])
   @@index([invoiceId])

@@ -213,6 +213,7 @@ export async function registerPayment(db: Db, input: {
   note?: string;
   reference?: string;
   userId?: string | null;
+  gatewayPaymentId?: string;
 }) {
   const payment = await db.$transaction(async (tx) => {
     const inv = await tx.invoice.findUniqueOrThrow({ where: { id: input.invoiceId } });
@@ -231,6 +232,7 @@ export async function registerPayment(db: Db, input: {
         date: input.date,
         note: input.note ?? "",
         reference: input.reference ?? "",
+        gatewayPaymentId: input.gatewayPaymentId,
         createdById: input.userId ?? null,
       },
     });

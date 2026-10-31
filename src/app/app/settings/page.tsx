@@ -3,7 +3,7 @@ import { formatDateTime } from "@/lib/dates";
 import { Badge, Card, Field, PageHeader } from "@/components/ui";
 import { ActionForm, SubmitButton } from "@/components/form";
 import { companyEmailConnected } from "@/lib/mail";
-import { disconnectEmail, saveEmailSettings, addCloseReason, inviteStaff, runJobsNow, saveCompany, savePaymentTerm, saveTax, toggleUser } from "./actions";
+import { disconnectEmail, disconnectPayments, saveEmailSettings, savePaymentSettings, addCloseReason, inviteStaff, runJobsNow, saveCompany, savePaymentTerm, saveTax, toggleUser } from "./actions";
 
 export const metadata = { title: "Settings" };
 
@@ -91,6 +91,41 @@ export default async function SettingsPage() {
             </ActionForm>
             {connected && (
               <ActionForm action={disconnectEmail} confirm="Disconnect your email? Customer emails will stop until you connect again." className="mt-3">
+                <SubmitButton size="sm" variant="danger">Disconnect</SubmitButton>
+              </ActionForm>
+            )}
+          </Card>
+        </div>
+
+        <div id="payments" className="scroll-mt-6">
+          <Card title="Payments (Razorpay)" actions={<Badge status="PAUSED" label="Test mode" />}>
+            <p className="text-sm text-ink-secondary">
+              Connect <strong className="font-medium text-ink">your own Razorpay account</strong> so customers can pay invoices online by card,
+              UPI or netbanking, straight into your account. Payments are verified with Razorpay before they&apos;re recorded.
+            </p>
+            {company?.razorpayKeyId ? (
+              <div className="mt-3 rounded-md border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm text-emerald-900">
+                ✓ Connected with key <strong className="font-medium">{company.razorpayKeyId}</strong>
+                {company.razorpayConnectedAt ? ` since ${formatDateTime(company.razorpayConnectedAt)}` : ""}.
+              </div>
+            ) : (
+              <div className="mt-3 rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-900">
+                Not connected. Customers see the demo checkout instead.
+              </div>
+            )}
+            <ActionForm action={savePaymentSettings} className="mt-4 grid gap-4 sm:grid-cols-2">
+              <Field label="Key ID" hint="Razorpay Dashboard → Test Mode → Account & Settings → API Keys.">
+                <input name="keyId" defaultValue={company?.razorpayKeyId} placeholder="rzp_test_…" required autoComplete="off" className="input" />
+              </Field>
+              <Field label="Key secret" hint={company?.razorpayKeyId ? "Leave empty to keep the saved secret." : "Stored encrypted."}>
+                <input name="keySecret" type="password" autoComplete="new-password" placeholder={company?.razorpayKeyId ? "••••••••••••" : ""} className="input" />
+              </Field>
+              <div className="sm:col-span-2">
+                <SubmitButton>{company?.razorpayKeyId ? "Save keys" : "Connect Razorpay"}</SubmitButton>
+              </div>
+            </ActionForm>
+            {company?.razorpayKeyId && (
+              <ActionForm action={disconnectPayments} confirm="Disconnect Razorpay? Customers will see the demo checkout." className="mt-3">
                 <SubmitButton size="sm" variant="danger">Disconnect</SubmitButton>
               </ActionForm>
             )}

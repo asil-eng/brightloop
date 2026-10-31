@@ -29,6 +29,14 @@ async function emailedLink(email: string) {
   return `/reset-password?token=${token}&invite=1`;
 }
 
+test.beforeAll(async () => {
+  // These tests read and write the database directly: never let them touch a real one.
+  if (!/@(localhost|127\.0\.0\.1)[:/]/.test(process.env.DATABASE_URL ?? "")) {
+    throw new Error("e2e tests must run against a local database: source .env.local-docker first.");
+  }
+  // The payment flow below exercises the demo checkout, so the demo company starts without Razorpay.
+  await prisma.organization.updateMany({ where: { name: "Brightloop Software" }, data: { razorpayKeyId: "", razorpayKeySecret: "", razorpayConnectedAt: null } });
+});
 test.afterAll(() => prisma.$disconnect());
 
 test("a business registers and gets its own empty workspace", async ({ page }) => {
@@ -150,9 +158,11 @@ test("one company can't open another company's records", async ({ page }) => {
   const sub = await prisma.subscription.findFirstOrThrow({ where: { orgId: brightloop.id } });
   await login(page, "admin@nimbusfitness.test", "Admin@1234");
   await expect(page.locator("aside").getByText("Nimbus Fitness")).toBeVisible();
-  for (const url of [`/app/invoices/${invoice.id}`, `/app/subscriptions/${sub.id}`]) {
-    const res = await page.goto(url);
-    expect(res?.status()).toBe(404);
+  // Pages stream behind a loading skeleton, so a missing record shows the not-found page (status 200 is already sent).
+  for (const [url, number] of [[`/app/invoices/${invoice.id}`, invoice.number!], [`/app/subscriptions/${sub.id}`, sub.number]]) {
+    await page.goto(url);
+    await expect(page.getByText("This page could not be found")).toBeVisible();
+    await expect(page.getByText(number)).toHaveCount(0);
   }
   const pdf = await page.request.get(`/api/invoices/${invoice.id}/pdf`);
   expect(pdf.status()).toBe(404);

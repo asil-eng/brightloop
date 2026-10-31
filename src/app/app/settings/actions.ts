@@ -6,6 +6,7 @@ import { randomToken, requireAdmin, sha256 } from "@/lib/auth";
 import { EMAIL_RE, UserError, bool, int, required, safeAction, str } from "@/lib/action";
 import { appUrl, createTransport, sendMail } from "@/lib/mail";
 import { seal, unseal } from "@/lib/secret-box";
+import { checkKeys, isTestKey } from "@/lib/razorpay";
 import { runCompanyJobs } from "@/lib/jobs";
 import { rootDb } from "@/lib/db";
 
@@ -157,4 +158,30 @@ export const disconnectEmail = safeAction(async () => {
     data: { smtpHost: "", smtpUser: "", smtpPassword: "", smtpFrom: "", emailConnectedAt: null },
   });
   return done("Email disconnected. Customer emails won't be sent until you connect again.");
+});
+
+/** Connect the company's own Razorpay account (test keys only); the keys are checked with Razorpay first. */
+export const savePaymentSettings = safeAction(async (data) => {
+  const { db, orgId } = await requireAdmin();
+  const org = await db.organization.findFirstOrThrow();
+  const keyId = required(data, "keyId", "Key ID");
+  if (!isTestKey(keyId)) {
+    throw new UserError("Use a Razorpay test key (it starts with rzp_test_). This prototype never takes real money.");
+  }
+  const typed = str(data, "keySecret");
+  const keySecret = typed || (org.razorpayKeySecret && keyId === org.razorpayKeyId ? unseal(org.razorpayKeySecret) : "");
+  if (!keySecret) throw new UserError("Enter the key secret.");
+  try {
+    await checkKeys({ keyId, keySecret });
+  } catch (e) {
+    throw new UserError(`Razorpay didn't accept these keys: ${e instanceof Error ? e.message : String(e)}`);
+  }
+  await db.organization.update({ where: { id: orgId }, data: { razorpayKeyId: keyId, razorpayKeySecret: seal(keySecret), razorpayConnectedAt: new Date() } });
+  return done("Razorpay connected. Customers can now pay invoices online with Razorpay (test mode).");
+});
+
+export const disconnectPayments = safeAction(async () => {
+  const { db, orgId } = await requireAdmin();
+  await db.organization.update({ where: { id: orgId }, data: { razorpayKeyId: "", razorpayKeySecret: "", razorpayConnectedAt: null } });
+  return done("Razorpay disconnected. Customers will see the demo checkout.");
 });
