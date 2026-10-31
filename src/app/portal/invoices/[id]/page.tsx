@@ -1,5 +1,4 @@
 import { notFound } from "next/navigation";
-import { db } from "@/lib/db";
 import { requireCustomer } from "@/lib/auth";
 import { formatMoney } from "@/lib/money";
 import { formatDate } from "@/lib/dates";
@@ -7,7 +6,7 @@ import { METHOD_LABEL, invoiceBadge } from "@/lib/status";
 import { Alert, Badge, Card, Info, LinkButton, PageHeader } from "@/components/ui";
 
 export default async function PortalInvoice({ params, searchParams }: { params: Promise<{ id: string }>; searchParams: Promise<{ paid?: string }> }) {
-  const { customer } = await requireCustomer();
+  const { customer, db } = await requireCustomer();
   const { id } = await params;
   const { paid } = await searchParams;
   const inv = await db.invoice.findFirst({
@@ -15,7 +14,7 @@ export default async function PortalInvoice({ params, searchParams }: { params: 
     include: { lines: true, payments: { orderBy: { date: "asc" } }, subscription: { select: { id: true, number: true } } },
   });
   if (!inv) notFound();
-  const company = await db.company.findUnique({ where: { id: 1 } });
+  const company = await db.organization.findFirst();
   const due = inv.total - inv.amountPaid;
 
   return (

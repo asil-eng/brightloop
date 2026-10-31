@@ -1,5 +1,4 @@
 import { notFound } from "next/navigation";
-import { db } from "@/lib/db";
 import { requireBackoffice } from "@/lib/auth";
 import { Card, PageHeader } from "@/components/ui";
 import { PlanForm } from "../plan-form";
@@ -7,6 +6,7 @@ import { updatePlan } from "../actions";
 
 export default async function PlanPage({ params }: { params: Promise<{ id: string }> }) {
   const user = await requireBackoffice();
+  const { db } = user;
   const { id } = await params;
   const plan = await db.recurringPlan.findUnique({ where: { id } });
   if (!plan) notFound();

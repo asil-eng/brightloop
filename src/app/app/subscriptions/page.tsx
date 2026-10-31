@@ -1,6 +1,5 @@
 import Link from "next/link";
 import type { Prisma, SubscriptionStatus } from "@prisma/client";
-import { db } from "@/lib/db";
 import { requireBackoffice } from "@/lib/auth";
 import { formatMoney } from "@/lib/money";
 import { formatDate, parseInputDate, periodLabel } from "@/lib/dates";
@@ -12,7 +11,7 @@ export const metadata = { title: "Subscriptions" };
 const STATUSES: SubscriptionStatus[] = ["DRAFT", "QUOTATION", "CONFIRMED", "ACTIVE", "PAUSED", "CLOSED"];
 
 export default async function SubscriptionsPage({ searchParams }: { searchParams: SearchParams }) {
-  await requireBackoffice();
+  const { db } = await requireBackoffice();
   const sp = await searchParams;
   const view = param(sp, "view") || "list";
   const page = pageOf(sp);
@@ -65,6 +64,7 @@ export default async function SubscriptionsPage({ searchParams }: { searchParams
 }
 
 async function List({ where, sp, page }: { where: Prisma.SubscriptionWhereInput; sp: Record<string, string | string[] | undefined>; page: number }) {
+  const { db } = await requireBackoffice();
   const [subs, total] = await Promise.all([
     db.subscription.findMany({
       where,
@@ -123,6 +123,7 @@ async function List({ where, sp, page }: { where: Prisma.SubscriptionWhereInput;
 const KANBAN_LIMIT = 15;
 
 async function Kanban({ where }: { where: Prisma.SubscriptionWhereInput }) {
+  const { db } = await requireBackoffice();
   const columns = await Promise.all(
     STATUSES.map(async (status) => {
       // A status filter hides the other columns' cards.

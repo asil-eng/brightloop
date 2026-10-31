@@ -1,5 +1,5 @@
 import "server-only";
-import { db } from "./db";
+import { rootDb, scopedDb, type Db } from "./db";
 import { addDays, formatDate, startOfDay } from "./dates";
 import { BillingError, confirmInvoice, invoiceNextPeriod, loadDiscountRules, renewSubscription, sendInvoice } from "./billing";
 import { logActivity } from "./activity";
@@ -11,7 +11,7 @@ const MAX_CATCH_UP = 36; // periods per subscription per run, guards against run
 export type JobResult = { name: string; count: number; errors: string[] };
 
 /** Activate confirmed subscriptions whose start date has arrived. */
-export async function activateStarted(): Promise<JobResult> {
+export async function activateStarted(db: Db): Promise<JobResult> {
   const today = startOfDay();
   const subs = await db.subscription.findMany({
     where: { status: "CONFIRMED", startDate: { lt: addDays(today, 1) } },
@@ -19,7 +19,7 @@ export async function activateStarted(): Promise<JobResult> {
   });
   for (const s of subs) {
     await db.subscription.update({ where: { id: s.id }, data: { status: "ACTIVE" } });
-    await logActivity("subscription", s.id, "Subscription started (start date reached).");
+    await logActivity(db, "subscription", s.id, "Subscription started (start date reached).");
   }
   return { name: "Activate started subscriptions", count: subs.length, errors: [] };
 }
@@ -28,10 +28,10 @@ export async function activateStarted(): Promise<JobResult> {
  * Billing day: invoice every active subscription that is due, catching up on any
  * missed periods. Invoices are confirmed and emailed according to company settings.
  */
-export async function runBilling(): Promise<JobResult> {
+export async function runBilling(db: Db): Promise<JobResult> {
   const today = startOfDay();
-  const company = await db.company.findUnique({ where: { id: 1 } });
-  const discounts = await loadDiscountRules();
+  const company = await db.organization.findFirst();
+  const discounts = await loadDiscountRules(db);
   const errors: string[] = [];
   let count = 0;
 
@@ -45,12 +45,12 @@ export async function runBilling(): Promise<JobResult> {
       const fresh = await db.subscription.findUnique({ where: { id: s.id }, select: { nextInvoiceDate: true, status: true } });
       if (!fresh?.nextInvoiceDate || fresh.nextInvoiceDate > today || fresh.status !== "ACTIVE") break;
       try {
-        const invoiceId = await invoiceNextPeriod(s.id, { discounts });
+        const invoiceId = await invoiceNextPeriod(db, s.id, { discounts });
         if (!invoiceId) break;
         count++;
         if (company?.autoConfirmInvoices) {
-          await confirmInvoice(invoiceId);
-          if (company.autoSendInvoices) await sendInvoice(invoiceId);
+          await confirmInvoice(db, invoiceId);
+          if (company.autoSendInvoices) await sendInvoice(db, invoiceId);
         }
       } catch (e) {
         errors.push(`${s.number}: ${e instanceof Error ? e.message : String(e)}`);
@@ -62,7 +62,7 @@ export async function runBilling(): Promise<JobResult> {
 }
 
 /** Close or auto-renew subscriptions past their expiry date; expire old quotations. */
-export async function handleExpiry(): Promise<JobResult> {
+export async function handleExpiry(db: Db): Promise<JobResult> {
   const today = startOfDay();
   const errors: string[] = [];
   let count = 0;
@@ -79,10 +79,10 @@ export async function handleExpiry(): Promise<JobResult> {
           where: { id: s.id },
           data: { status: "CLOSED", closedAt: new Date(), closeReasonId: reason?.id, nextInvoiceDate: null },
         });
-        await logActivity("subscription", s.id, "Subscription closed automatically at the end of its term.");
+        await logActivity(db, "subscription", s.id, "Subscription closed automatically at the end of its term.");
         count++;
       } else if (s.plan.renewable && s.status === "ACTIVE") {
-        await renewSubscription(s.id);
+        await renewSubscription(db, s.id);
         count++;
       }
     } catch (e) {
@@ -100,15 +100,15 @@ export async function handleExpiry(): Promise<JobResult> {
       where: { id: q.id },
       data: { status: "CLOSED", closedAt: new Date(), closeReasonId: qReason?.id },
     });
-    await logActivity("subscription", q.id, "Quotation expired without being confirmed.");
+    await logActivity(db, "subscription", q.id, "Quotation expired without being confirmed.");
     count++;
   }
   return { name: "Expiry & renewals", count, errors };
 }
 
 /** Email a reminder for invoices that are overdue by the configured number of days. */
-export async function sendOverdueReminders(): Promise<JobResult> {
-  const company = await db.company.findUnique({ where: { id: 1 } });
+export async function sendOverdueReminders(db: Db): Promise<JobResult> {
+  const company = await db.organization.findFirst();
   const cutoff = addDays(startOfDay(), -(company?.overdueReminderDays ?? 3));
   const invoices = await db.invoice.findMany({
     where: { status: "CONFIRMED", dueDate: { lte: cutoff }, reminderSentAt: null },
@@ -116,7 +116,7 @@ export async function sendOverdueReminders(): Promise<JobResult> {
     take: 500,
   });
   for (const inv of invoices) {
-    await sendMail({
+    await sendMail(db, {
       to: inv.customer.email,
       subject: `Reminder: invoice ${inv.number} is overdue`,
       heading: "Payment reminder",
@@ -129,14 +129,14 @@ export async function sendOverdueReminders(): Promise<JobResult> {
       entity: { type: "invoice", id: inv.id },
     });
     await db.invoice.update({ where: { id: inv.id }, data: { reminderSentAt: new Date() } });
-    await logActivity("invoice", inv.id, "Overdue reminder emailed.");
+    await logActivity(db, "invoice", inv.id, "Overdue reminder emailed.");
   }
   return { name: "Overdue reminders", count: invoices.length, errors: [] };
 }
 
 /** Warn customers before a subscription with an end date reaches it. */
-export async function sendRenewalReminders(): Promise<JobResult> {
-  const company = await db.company.findUnique({ where: { id: 1 } });
+export async function sendRenewalReminders(db: Db): Promise<JobResult> {
+  const company = await db.organization.findFirst();
   const today = startOfDay();
   const subs = await db.subscription.findMany({
     where: {
@@ -148,7 +148,7 @@ export async function sendRenewalReminders(): Promise<JobResult> {
   });
   for (const s of subs) {
     const willRenew = !s.plan.autoClose && s.plan.renewable;
-    await sendMail({
+    await sendMail(db, {
       to: s.customer.email,
       subject: `Your subscription ${s.number} ${willRenew ? "renews" : "ends"} on ${formatDate(s.expiryDate)}`,
       heading: willRenew ? "Your subscription renews soon" : "Your subscription ends soon",
@@ -167,7 +167,7 @@ export async function sendRenewalReminders(): Promise<JobResult> {
 }
 
 /** Switch off discounts that expired or used up their limit. */
-export async function expireDiscounts(): Promise<JobResult> {
+export async function expireDiscounts(db: Db): Promise<JobResult> {
   const today = startOfDay();
   const byDate = await db.discount.updateMany({ where: { active: true, endDate: { lt: today } }, data: { active: false } });
   const all = await db.discount.findMany({ where: { active: true, usageLimit: { not: null } } });
@@ -176,24 +176,40 @@ export async function expireDiscounts(): Promise<JobResult> {
   return { name: "Discount expiry", count: byDate.count + usedUp.length, errors: [] };
 }
 
-let running = false;
+const running = new Set<string>();
 
-/** Run every daily job in order. Safe to call repeatedly — each step is idempotent. */
-export async function runDailyJobs(): Promise<JobResult[]> {
-  if (running) return [{ name: "Daily jobs", count: 0, errors: ["Already running"] }];
-  running = true;
+/** Run every daily job for one company, in order. Safe to call repeatedly: each step is idempotent. */
+export async function runCompanyJobs(db: Db): Promise<JobResult[]> {
+  const org = await db.organization.findFirstOrThrow();
+  if (running.has(org.id)) return [{ name: "Daily jobs", count: 0, errors: ["Already running"] }];
+  running.add(org.id);
   try {
     const results: JobResult[] = [];
-    results.push(await activateStarted());
-    results.push(await expireDiscounts());
-    results.push(await handleExpiry());
-    results.push(await runBilling());
-    results.push(await sendOverdueReminders());
-    results.push(await sendRenewalReminders());
+    results.push(await activateStarted(db));
+    results.push(await expireDiscounts(db));
+    results.push(await handleExpiry(db));
+    results.push(await runBilling(db));
+    results.push(await sendOverdueReminders(db));
+    results.push(await sendRenewalReminders(db));
     return results;
   } finally {
-    running = false;
+    running.delete(org.id);
   }
+}
+
+/** Run the daily jobs for every registered company (scheduler and cron endpoint). */
+export async function runDailyJobs(): Promise<JobResult[]> {
+  const orgs = await rootDb.organization.findMany({ select: { id: true, name: true } });
+  const totals = new Map<string, JobResult>();
+  for (const org of orgs) {
+    for (const r of await runCompanyJobs(scopedDb(org.id))) {
+      const t = totals.get(r.name) ?? { name: r.name, count: 0, errors: [] };
+      t.count += r.count;
+      t.errors.push(...r.errors.map((e) => `${org.name}: ${e}`));
+      totals.set(r.name, t);
+    }
+  }
+  return [...totals.values()];
 }
 
 export { BillingError };

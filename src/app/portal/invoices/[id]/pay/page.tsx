@@ -1,5 +1,4 @@
 import { notFound, redirect } from "next/navigation";
-import { db } from "@/lib/db";
 import { requireCustomer } from "@/lib/auth";
 import { formatMoney } from "@/lib/money";
 import { formatDate } from "@/lib/dates";
@@ -9,7 +8,7 @@ import { Checkout } from "./checkout";
 export const metadata = { title: "Pay invoice" };
 
 export default async function PayPage({ params }: { params: Promise<{ id: string }> }) {
-  const { customer } = await requireCustomer();
+  const { customer, db, org } = await requireCustomer();
   const { id } = await params;
   const inv = await db.invoice.findFirst({ where: { id, customerId: customer.id } });
   if (!inv || inv.status === "DRAFT") notFound();
@@ -26,7 +25,7 @@ export default async function PayPage({ params }: { params: Promise<{ id: string
           <p>{formatDate(inv.dueDate)}</p>
           <p className="mt-3 label">Amount to pay</p>
           <p className="text-2xl font-semibold">{formatMoney(due)}</p>
-          <p className="mt-4 text-xs text-zinc-500">The money goes straight to Brightloop Software. Your card details are never stored.</p>
+          <p className="mt-4 text-xs text-zinc-500">The money goes straight to {org.name}. Your card details are never stored.</p>
         </Card>
         <Card className="md:col-span-3" title="Payment details">
           <Checkout invoiceId={id} amount={formatMoney(due)} />

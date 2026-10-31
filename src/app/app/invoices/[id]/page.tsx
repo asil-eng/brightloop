@@ -1,6 +1,5 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { db } from "@/lib/db";
 import { requireBackoffice } from "@/lib/auth";
 import { formatMoney, toMajor } from "@/lib/money";
 import { formatDate, formatDateTime, toInputDate } from "@/lib/dates";
@@ -21,7 +20,7 @@ function Op({ id, op, label, variant = "secondary", confirm }: { id: string; op:
 }
 
 export default async function InvoicePage({ params }: { params: Promise<{ id: string }> }) {
-  await requireBackoffice();
+  const { db } = await requireBackoffice();
   const { id } = await params;
   const inv = await db.invoice.findUnique({
     where: { id },

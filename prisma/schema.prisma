@@ -19,13 +19,15 @@ enum Role {
 }
 
 model User {
-  id           String   @id @default(cuid())
-  email        String   @unique
+  orgId        String       @default("") // set by scopedDb()
+  org          Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  id           String       @id @default(cuid())
+  email        String       @unique
   name         String
   passwordHash String?
-  role         Role     @default(CUSTOMER)
-  active       Boolean  @default(true)
-  createdAt    DateTime @default(now())
+  role         Role         @default(CUSTOMER)
+  active       Boolean      @default(true)
+  createdAt    DateTime     @default(now())
 
   customer      Customer?
   sessions      Session[]
@@ -33,6 +35,8 @@ model User {
   subscriptions Subscription[]       @relation("Salesperson")
   payments      Payment[]
   activities    Activity[]
+
+  @@index([orgId])
 }
 
 model Session {
@@ -56,38 +60,67 @@ model PasswordResetToken {
   user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
-// ───────────── Company settings ─────────────
+// ───────────── Companies (tenants) ─────────────
 
-model Company {
-  id                  Int     @id @default(1)
-  name                String  @default("Brightloop Software")
-  email               String  @default("billing@brightloop.test")
-  phone               String  @default("")
-  address             String  @default("")
-  currency            String  @default("INR")
-  autoConfirmInvoices Boolean @default(true)
-  autoSendInvoices    Boolean @default(true)
-  overdueReminderDays Int     @default(3)
-  renewalReminderDays Int     @default(7)
+// Every business that registers gets its own organization. All of its data carries
+// orgId, and the app reads and writes through a client scoped to one organization.
+model Organization {
+  id                  String   @id @default(cuid())
+  name                String
+  slug                String   @unique
+  email               String   @default("")
+  phone               String   @default("")
+  address             String   @default("")
+  currency            String   @default("INR")
+  autoConfirmInvoices Boolean  @default(true)
+  autoSendInvoices    Boolean  @default(true)
+  overdueReminderDays Int      @default(3)
+  renewalReminderDays Int      @default(7)
+  createdAt           DateTime @default(now())
+
+  users         User[]
+  customers     Customer[]
+  taxes         Tax[]
+  products      Product[]
+  attributes    Attribute[]
+  variants      ProductVariant[]
+  plans         RecurringPlan[]
+  paymentTerms  PaymentTerm[]
+  templates     QuotationTemplate[]
+  closeReasons  CloseReason[]
+  subscriptions Subscription[]
+  discounts     Discount[]
+  invoices      Invoice[]
+  payments      Payment[]
+  activities    Activity[]
+  emails        EmailLog[]
+  sequences     Sequence[]
 }
 
 model Sequence {
-  name String @id // subscription | invoice | payment
-  next Int    @default(1)
+  id    String       @id @default(cuid())
+  orgId String       @default("") // set by scopedDb()
+  name  String // subscription | invoice | payment
+  next  Int          @default(1)
+  org   Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
+
+  @@unique([orgId, name])
 }
 
 // ───────────── Customers ─────────────
 
 model Customer {
-  id        String   @id @default(cuid())
+  orgId     String       @default("") // set by scopedDb()
+  org       Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  id        String       @id @default(cuid())
   name      String
   email     String
-  phone     String   @default("")
-  company   String   @default("")
-  address   String   @default("")
-  taxId     String   @default("")
-  userId    String?  @unique
-  createdAt DateTime @default(now())
+  phone     String       @default("")
+  company   String       @default("")
+  address   String       @default("")
+  taxId     String       @default("")
+  userId    String?      @unique
+  createdAt DateTime     @default(now())
 
   user          User?          @relation(fields: [userId], references: [id])
   subscriptions Subscription[]
@@ -95,6 +128,7 @@ model Customer {
 
   @@index([email])
   @@index([name])
+  @@index([orgId])
 }
 
 // ───────────── Catalogue ─────────────
@@ -106,26 +140,32 @@ enum ProductType {
 }
 
 model Tax {
-  id            String  @id @default(cuid())
+  orgId         String       @default("") // set by scopedDb()
+  org           Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  id            String       @id @default(cuid())
   name          String
   rate          Float // percentage, e.g. 18 = 18%
-  priceIncluded Boolean @default(false)
-  active        Boolean @default(true)
+  priceIncluded Boolean      @default(false)
+  active        Boolean      @default(true)
 
   products          Product[]
   subscriptionLines SubscriptionLine[]
+
+  @@index([orgId])
 }
 
 model Product {
-  id         String      @id @default(cuid())
+  orgId      String       @default("") // set by scopedDb()
+  org        Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  id         String       @id @default(cuid())
   name       String
-  type       ProductType @default(SERVICE)
+  type       ProductType  @default(SERVICE)
   salesPrice Int
-  costPrice  Int         @default(0)
-  notes      String      @default("")
-  recurring  Boolean     @default(true)
-  active     Boolean     @default(true)
-  createdAt  DateTime    @default(now())
+  costPrice  Int          @default(0)
+  notes      String       @default("")
+  recurring  Boolean      @default(true)
+  active     Boolean      @default(true)
+  createdAt  DateTime     @default(now())
 
   taxes             Tax[]
   variants          ProductVariant[]
@@ -133,14 +173,20 @@ model Product {
   templateLines     TemplateLine[]
   subscriptionLines SubscriptionLine[]
   discounts         Discount[]
+
+  @@index([orgId])
 }
 
 model Attribute {
+  orgId     String           @default("") // set by scopedDb()
+  org       Organization     @relation(fields: [orgId], references: [id], onDelete: Cascade)
   id        String           @id @default(cuid())
   name      String
   productId String
   product   Product          @relation(fields: [productId], references: [id], onDelete: Cascade)
   values    AttributeValue[]
+
+  @@index([orgId])
 }
 
 model AttributeValue {
@@ -153,6 +199,8 @@ model AttributeValue {
 }
 
 model ProductVariant {
+  orgId      String           @default("") // set by scopedDb()
+  org        Organization     @relation(fields: [orgId], references: [id], onDelete: Cascade)
   id         String           @id @default(cuid())
   productId  String
   name       String // e.g. "Brand: Odoo"
@@ -163,6 +211,8 @@ model ProductVariant {
 
   templateLines     TemplateLine[]
   subscriptionLines SubscriptionLine[]
+
+  @@index([orgId])
 }
 
 enum BillingPeriod {
@@ -173,6 +223,8 @@ enum BillingPeriod {
 }
 
 model RecurringPlan {
+  orgId       String        @default("") // set by scopedDb()
+  org         Organization  @relation(fields: [orgId], references: [id], onDelete: Cascade)
   id          String        @id @default(cuid())
   name        String
   price       Int           @default(0) // recurring plan fee, added as a line
@@ -190,18 +242,26 @@ model RecurringPlan {
 
   templates     QuotationTemplate[]
   subscriptions Subscription[]
+
+  @@index([orgId])
 }
 
 model PaymentTerm {
-  id      String @id @default(cuid())
+  orgId   String       @default("") // set by scopedDb()
+  org     Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  id      String       @id @default(cuid())
   name    String
-  dueDays Int    @default(0)
+  dueDays Int          @default(0)
 
   templates     QuotationTemplate[]
   subscriptions Subscription[]
+
+  @@index([orgId])
 }
 
 model QuotationTemplate {
+  orgId         String         @default("") // set by scopedDb()
+  org           Organization   @relation(fields: [orgId], references: [id], onDelete: Cascade)
   id            String         @id @default(cuid())
   name          String
   planId        String
@@ -212,6 +272,8 @@ model QuotationTemplate {
   paymentTerm   PaymentTerm?   @relation(fields: [paymentTermId], references: [id])
   lines         TemplateLine[]
   subscriptions Subscription[]
+
+  @@index([orgId])
 }
 
 model TemplateLine {
@@ -237,14 +299,20 @@ enum SubscriptionStatus {
 }
 
 model CloseReason {
+  orgId         String         @default("") // set by scopedDb()
+  org           Organization   @relation(fields: [orgId], references: [id], onDelete: Cascade)
   id            String         @id @default(cuid())
   name          String
   subscriptions Subscription[]
+
+  @@index([orgId])
 }
 
 model Subscription {
+  orgId             String             @default("") // set by scopedDb()
+  org               Organization       @relation(fields: [orgId], references: [id], onDelete: Cascade)
   id                String             @id @default(cuid())
-  number            String             @unique
+  number            String
   customerId        String
   planId            String
   status            SubscriptionStatus @default(DRAFT)
@@ -275,10 +343,12 @@ model Subscription {
   invoices    Invoice[]
   discounts   Discount[]
 
+  @@unique([orgId, number])
   @@index([status])
   @@index([customerId])
   @@index([status, nextInvoiceDate])
   @@index([createdAt])
+  @@index([orgId])
 }
 
 model SubscriptionLine {
@@ -313,6 +383,8 @@ enum DiscountScope {
 }
 
 model Discount {
+  orgId       String        @default("") // set by scopedDb()
+  org         Organization  @relation(fields: [orgId], references: [id], onDelete: Cascade)
   id          String        @id @default(cuid())
   name        String
   type        DiscountType  @default(PERCENT)
@@ -330,6 +402,8 @@ model Discount {
   products      Product[]
   subscriptions Subscription[]
   invoiceLines  InvoiceLine[]
+
+  @@index([orgId])
 }
 
 // ───────────── Invoices & payments ─────────────
@@ -342,8 +416,10 @@ enum InvoiceStatus {
 }
 
 model Invoice {
+  orgId          String        @default("") // set by scopedDb()
+  org            Organization  @relation(fields: [orgId], references: [id], onDelete: Cascade)
   id             String        @id @default(cuid())
-  number         String?       @unique // assigned on confirmation
+  number         String? // assigned on confirmation
   // "<subscriptionId>:<periodStart ISO>" — unique while the invoice is not cancelled,
   // which guarantees a billing period is never invoiced twice.
   billingKey     String?       @unique
@@ -368,10 +444,12 @@ model Invoice {
   lines        InvoiceLine[]
   payments     Payment[]
 
+  @@unique([orgId, number])
   @@index([status, dueDate])
   @@index([customerId])
   @@index([subscriptionId])
   @@index([invoiceDate])
+  @@index([orgId])
 }
 
 model InvoiceLine {
@@ -403,8 +481,10 @@ enum PaymentMethod {
 }
 
 model Payment {
+  orgId       String        @default("") // set by scopedDb()
+  org         Organization  @relation(fields: [orgId], references: [id], onDelete: Cascade)
   id          String        @id @default(cuid())
-  number      String        @unique
+  number      String
   invoiceId   String
   amount      Int
   method      PaymentMethod
@@ -416,34 +496,42 @@ model Payment {
   invoice     Invoice       @relation(fields: [invoiceId], references: [id])
   createdBy   User?         @relation(fields: [createdById], references: [id])
 
+  @@unique([orgId, number])
   @@index([invoiceId])
   @@index([date])
+  @@index([orgId])
 }
 
 // ───────────── Chatter & email log ─────────────
 
 model Activity {
-  id         String   @id @default(cuid())
+  orgId      String       @default("") // set by scopedDb()
+  org        Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  id         String       @id @default(cuid())
   entityType String // subscription | invoice | customer
   entityId   String
   message    String
-  isNote     Boolean  @default(false)
+  isNote     Boolean      @default(false)
   userId     String?
-  createdAt  DateTime @default(now())
-  user       User?    @relation(fields: [userId], references: [id])
+  createdAt  DateTime     @default(now())
+  user       User?        @relation(fields: [userId], references: [id])
 
   @@index([entityType, entityId])
+  @@index([orgId])
 }
 
 model EmailLog {
-  id         String   @id @default(cuid())
+  orgId      String       @default("") // set by scopedDb()
+  org        Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  id         String       @id @default(cuid())
   to         String
   subject    String
   status     String // sent | failed
-  error      String   @default("")
+  error      String       @default("")
   entityType String?
   entityId   String?
-  createdAt  DateTime @default(now())
+  createdAt  DateTime     @default(now())
 
   @@index([createdAt])
+  @@index([orgId])
 }

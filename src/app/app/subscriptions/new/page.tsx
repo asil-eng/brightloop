@@ -1,4 +1,3 @@
-import { db } from "@/lib/db";
 import { requireBackoffice } from "@/lib/auth";
 import { loadCatalog } from "@/lib/catalog";
 import { addDays, startOfDay } from "@/lib/dates";
@@ -11,11 +10,11 @@ import Link from "next/link";
 export const metadata = { title: "New subscription" };
 
 export default async function NewSubscriptionPage({ searchParams }: { searchParams: Promise<{ templateId?: string; customerId?: string }> }) {
-  await requireBackoffice();
+  const { db } = await requireBackoffice();
   const { templateId, customerId } = await searchParams;
   const today = startOfDay();
   const [{ products, taxes }, customers, plans, terms, templates] = await Promise.all([
-    loadCatalog(),
+    loadCatalog(db),
     db.customer.findMany({ select: { id: true, name: true, company: true }, orderBy: { name: "asc" } }),
     db.recurringPlan.findMany({
       where: { active: true, OR: [{ endDate: null }, { endDate: { gte: today } }] },

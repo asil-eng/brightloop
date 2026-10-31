@@ -1,7 +1,7 @@
 "use server";
 
 import { redirect } from "next/navigation";
-import { db } from "@/lib/db";
+import { rootDb, scopedDb } from "@/lib/db";
 import {
   createSession,
   destroySession,
@@ -14,13 +14,14 @@ import {
 } from "@/lib/auth";
 import { EMAIL_RE, UserError, required, safeAction, str } from "@/lib/action";
 import { appUrl, sendMail } from "@/lib/mail";
+import { setUpCompany } from "@/lib/company";
 
 const RESET_HOURS = 1;
 
 export const loginAction = safeAction(async (data) => {
   const email = required(data, "email", "Email").toLowerCase();
   const password = required(data, "password", "Password");
-  const user = await db.user.findUnique({ where: { email } });
+  const user = await rootDb.user.findUnique({ where: { email } });
   if (!user?.passwordHash || !(await verifyPassword(password, user.passwordHash))) {
     throw new UserError("Incorrect email or password.");
   }
@@ -30,8 +31,13 @@ export const loginAction = safeAction(async (data) => {
   redirect(next.startsWith("/") && !next.startsWith("//") ? next : homeFor(user.role));
 });
 
-export const signupAction = safeAction(async (data) => {
-  const name = required(data, "name", "Name");
+/**
+ * A business registers to use the system. It gets its own company workspace,
+ * and the person registering becomes its administrator.
+ */
+export const registerCompanyAction = safeAction(async (data) => {
+  const companyName = required(data, "company", "Company name");
+  const name = required(data, "name", "Your name");
   const email = required(data, "email", "Email").toLowerCase();
   const password = required(data, "password", "Password");
   if (!EMAIL_RE.test(email)) throw new UserError("Enter a valid email address.");
@@ -39,52 +45,39 @@ export const signupAction = safeAction(async (data) => {
   if (pwError) throw new UserError(pwError);
   if (password !== str(data, "confirm")) throw new UserError("The passwords do not match.");
 
-  // One account per email.
-  if (await db.user.findUnique({ where: { email } })) {
+  // One account per email, across the whole platform.
+  if (await rootDb.user.findUnique({ where: { email } })) {
     throw new UserError("An account with this email already exists. Try logging in or resetting your password.");
   }
 
-  const user = await db.$transaction(async (tx) => {
-    const u = await tx.user.create({
-      data: { email, name, role: "CUSTOMER", passwordHash: await hashPassword(password) },
-    });
-    // Link to an existing contact the team already created for this email, or make one.
-    const existing = await tx.customer.findFirst({ where: { email, userId: null } });
-    if (existing) {
-      await tx.customer.update({ where: { id: existing.id }, data: { userId: u.id } });
-    } else {
-      await tx.customer.create({
-        data: { name, email, company: str(data, "company"), userId: u.id },
-      });
-    }
-    return u;
-  });
+  const { org, admin } = await setUpCompany({ companyName, ownerName: name, ownerEmail: email, passwordHash: await hashPassword(password) });
 
-  await sendMail({
+  await sendMail(scopedDb(org.id), {
     to: email,
-    subject: "Welcome to Brightloop",
-    heading: `Welcome, ${name}!`,
+    subject: `Welcome to Brightloop, ${companyName}`,
+    heading: `Your workspace for ${companyName} is ready`,
     paragraphs: [
-      "Your account is ready. From your portal you can see your subscriptions, download invoices and pay online.",
+      `Hello ${name},`,
+      "You're the administrator. Add your products and plans, invite your team and add your customers. Your customers get their own login to see and pay their invoices.",
     ],
-    button: { label: "Open my portal", url: `${appUrl()}/portal` },
+    button: { label: "Open my workspace", url: `${appUrl()}/app` },
   });
 
-  await createSession(user.id);
-  redirect("/portal");
+  await createSession(admin.id);
+  redirect("/app");
 });
 
 export const forgotPasswordAction = safeAction(async (data) => {
   const email = required(data, "email", "Email").toLowerCase();
-  const user = await db.user.findUnique({ where: { email } });
+  const user = await rootDb.user.findUnique({ where: { email } });
   if (user?.active) {
     const token = randomToken();
-    await db.passwordResetToken.create({
+    await rootDb.passwordResetToken.create({
       data: { tokenHash: sha256(token), userId: user.id, expiresAt: new Date(Date.now() + RESET_HOURS * 3600_000) },
     });
-    await sendMail({
+    await sendMail(scopedDb(user.orgId), {
       to: user.email,
-      subject: "Reset your Brightloop password",
+      subject: "Reset your password",
       heading: "Reset your password",
       paragraphs: [
         `Hello ${user.name},`,
@@ -98,6 +91,7 @@ export const forgotPasswordAction = safeAction(async (data) => {
   return { ok: "If an account exists for that email, a reset link is on its way. Check your inbox." };
 });
 
+/** Used both for "forgot password" and for the set-password link in invitation emails. */
 export const resetPasswordAction = safeAction(async (data) => {
   const token = required(data, "token", "Reset link");
   const password = required(data, "password", "Password");
@@ -105,15 +99,15 @@ export const resetPasswordAction = safeAction(async (data) => {
   if (pwError) throw new UserError(pwError);
   if (password !== str(data, "confirm")) throw new UserError("The passwords do not match.");
 
-  const record = await db.passwordResetToken.findUnique({ where: { tokenHash: sha256(token) }, include: { user: true } });
+  const record = await rootDb.passwordResetToken.findUnique({ where: { tokenHash: sha256(token) }, include: { user: true } });
   if (!record || record.usedAt || record.expiresAt < new Date()) {
-    throw new UserError("This link is invalid or has expired. Please request a new one.");
+    throw new UserError("This link is invalid or has expired. Please ask for a new one.");
   }
-  await db.$transaction([
-    db.user.update({ where: { id: record.userId }, data: { passwordHash: await hashPassword(password) } }),
-    db.passwordResetToken.update({ where: { id: record.id }, data: { usedAt: new Date() } }),
+  await rootDb.$transaction([
+    rootDb.user.update({ where: { id: record.userId }, data: { passwordHash: await hashPassword(password) } }),
+    rootDb.passwordResetToken.update({ where: { id: record.id }, data: { usedAt: new Date() } }),
     // Log out everywhere else after a password change.
-    db.session.deleteMany({ where: { userId: record.userId } }),
+    rootDb.session.deleteMany({ where: { userId: record.userId } }),
   ]);
   await createSession(record.userId);
   redirect(homeFor(record.user.role));

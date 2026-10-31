@@ -1,6 +1,5 @@
 import Link from "next/link";
 import type { Prisma } from "@prisma/client";
-import { db } from "@/lib/db";
 import { requireBackoffice } from "@/lib/auth";
 import { formatMoney } from "@/lib/money";
 import { EmptyState, LinkButton, PageHeader } from "@/components/ui";
@@ -9,7 +8,7 @@ import { PAGE_SIZE, Pagination, SearchBar, pageOf, param, type SearchParams } fr
 export const metadata = { title: "Customers" };
 
 export default async function CustomersPage({ searchParams }: { searchParams: SearchParams }) {
-  await requireBackoffice();
+  const { db } = await requireBackoffice();
   const sp = await searchParams;
   const page = pageOf(sp);
   const q = param(sp, "q");

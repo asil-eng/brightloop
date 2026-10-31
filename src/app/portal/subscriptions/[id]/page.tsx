@@ -1,6 +1,5 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { db } from "@/lib/db";
 import { requireCustomer } from "@/lib/auth";
 import { formatMoney } from "@/lib/money";
 import { formatDate, periodLabel, startOfDay } from "@/lib/dates";
@@ -22,7 +21,7 @@ function Op({ id, op, label, variant = "secondary", confirm }: { id: string; op:
 }
 
 export default async function PortalSubscription({ params }: { params: Promise<{ id: string }> }) {
-  const { customer } = await requireCustomer();
+  const { customer, db } = await requireCustomer();
   const { id } = await params;
   const sub = await db.subscription.findFirst({
     where: { id, customerId: customer.id, status: { not: "DRAFT" } },

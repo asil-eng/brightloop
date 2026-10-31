@@ -2,11 +2,11 @@
 
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
-import { db } from "@/lib/db";
-import { randomToken, requireBackoffice, sha256 } from "@/lib/auth";
+import { requireBackoffice } from "@/lib/auth";
+import { rootDb } from "@/lib/db";
+import { sendPortalInvite } from "@/lib/portal-access";
 import { EMAIL_RE, UserError, required, safeAction, str } from "@/lib/action";
 import { logActivity } from "@/lib/activity";
-import { appUrl, sendMail } from "@/lib/mail";
 
 function readCustomer(data: FormData) {
   const email = required(data, "email", "Email").toLowerCase();
@@ -23,53 +23,47 @@ function readCustomer(data: FormData) {
 
 export const createCustomer = safeAction(async (data) => {
   const user = await requireBackoffice();
-  const c = await db.customer.create({ data: readCustomer(data) });
-  await logActivity("customer", c.id, "Customer created.", user.id);
+  const { db } = user;
+  const values = readCustomer(data);
+  // Every customer gets a portal login, and an email can only have one account.
+  if (await rootDb.user.findUnique({ where: { email: values.email } })) {
+    throw new UserError("This email already has an account. Use a different email for this customer.");
+  }
+  const c = await db.customer.create({ data: values });
+  await logActivity(db, "customer", c.id, "Customer created.", user.id);
+  await sendPortalInvite(db, c, user.id);
   redirect(`/app/customers/${c.id}`);
 });
 
 export const updateCustomer = safeAction(async (data) => {
   const user = await requireBackoffice();
+  const { db } = user;
   const id = required(data, "id", "Customer");
   const values = readCustomer(data);
   const current = await db.customer.findUniqueOrThrow({ where: { id } });
-  if (current.userId && values.email !== current.email) {
-    if (await db.user.findFirst({ where: { email: values.email, NOT: { id: current.userId } } })) {
-      throw new UserError("Another account already uses this email.");
-    }
-    await db.user.update({ where: { id: current.userId }, data: { email: values.email } });
+  if (values.email !== current.email) {
+    const taken = await rootDb.user.findUnique({ where: { email: values.email } });
+    if (taken && taken.id !== current.userId) throw new UserError("Another account already uses this email.");
+    if (current.userId) await db.user.update({ where: { id: current.userId }, data: { email: values.email } });
   }
   await db.customer.update({ where: { id }, data: values });
-  await logActivity("customer", id, "Customer details updated.", user.id);
+  await logActivity(db, "customer", id, "Customer details updated.", user.id);
   revalidatePath(`/app/customers/${id}`);
   return { ok: "Customer saved." };
 });
 
-/** Give a customer contact a portal login: creates the account and emails a set-password link. */
-export const inviteToPortal = safeAction(async (data) => {
+/** Email the customer their login link again (or for the first time, for older contacts). */
+export const resendLogin = safeAction(async (data) => {
   const staff = await requireBackoffice();
+  const { db } = staff;
   const id = required(data, "id", "Customer");
   const c = await db.customer.findUniqueOrThrow({ where: { id } });
-  if (c.userId) throw new UserError("This customer already has portal access.");
-  if (await db.user.findUnique({ where: { email: c.email } })) throw new UserError("An account with this email already exists.");
-
-  const token = randomToken();
-  await db.$transaction(async (tx) => {
-    const u = await tx.user.create({ data: { email: c.email, name: c.name, role: "CUSTOMER" } });
-    await tx.customer.update({ where: { id }, data: { userId: u.id } });
-    await tx.passwordResetToken.create({
-      data: { tokenHash: sha256(token), userId: u.id, purpose: "invite", expiresAt: new Date(Date.now() + 72 * 3600_000) },
-    });
-  });
-  await sendMail({
-    to: c.email,
-    subject: "Your Brightloop customer portal",
-    heading: "You're invited to the customer portal",
-    paragraphs: [`Hello ${c.name},`, "See your subscriptions, download invoices and pay online. Set a password to get started (link valid for 72 hours)."],
-    button: { label: "Set my password", url: `${appUrl()}/reset-password?token=${token}&invite=1` },
-    entity: { type: "customer", id },
-  });
-  await logActivity("customer", id, "Invited to the customer portal.", staff.id);
-  revalidatePath(`/app/customers/${id}`);
-  return { ok: `Invitation sent to ${c.email}.` };
+  try {
+    const ok = await sendPortalInvite(db, c, staff.id);
+    revalidatePath(`/app/customers/${id}`);
+    return { ok };
+  } catch (e) {
+    if (e instanceof Error && e.message === "EMAIL_TAKEN") throw new UserError("Another account already uses this email.");
+    throw e;
+  }
 });

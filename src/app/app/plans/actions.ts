@@ -3,7 +3,6 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import type { BillingPeriod } from "@prisma/client";
-import { db } from "@/lib/db";
 import { requireAdmin } from "@/lib/auth";
 import { UserError, bool, int, required, safeAction, str } from "@/lib/action";
 import { toMinor } from "@/lib/money";
@@ -40,13 +39,13 @@ function readPlan(data: FormData) {
 }
 
 export const createPlan = safeAction(async (data) => {
-  await requireAdmin();
+  const { db } = await requireAdmin();
   const plan = await db.recurringPlan.create({ data: readPlan(data) });
   redirect(`/app/plans/${plan.id}`);
 });
 
 export const updatePlan = safeAction(async (data) => {
-  await requireAdmin();
+  const { db } = await requireAdmin();
   const id = required(data, "id", "Plan");
   await db.recurringPlan.update({ where: { id }, data: readPlan(data) });
   revalidatePath("/app/plans");

@@ -1,9 +1,9 @@
 import "server-only";
-import { db } from "./db";
+import type { Db } from "./db";
 import { addDays, addMonths, monthlyFactor, startOfDay } from "./dates";
 
 /** Monthly recurring revenue (untaxed) of active subscriptions, per plan and in total. */
-export async function mrr() {
+export async function mrr(db: Db) {
   const [byPlan, plans] = await Promise.all([
     db.subscription.groupBy({ by: ["planId"], where: { status: "ACTIVE" }, _sum: { untaxed: true }, _count: true }),
     db.recurringPlan.findMany({ select: { id: true, name: true, period: true, interval: true } }),
@@ -15,7 +15,7 @@ export async function mrr() {
   return { total: rows.reduce((s, r) => s + r.mrr, 0), byPlan: rows.sort((a, b) => b.mrr - a.mrr) };
 }
 
-export async function headline() {
+export async function headline(db: Db) {
   const today = startOfDay();
   const monthStart = new Date(today.getFullYear(), today.getMonth(), 1);
   const [active, paused, collectedMonth, outstanding, overdue, closed30, recurring] = await Promise.all([
@@ -25,7 +25,7 @@ export async function headline() {
     db.invoice.aggregate({ where: { status: "CONFIRMED" }, _sum: { total: true, amountPaid: true }, _count: true }),
     db.invoice.aggregate({ where: { status: "CONFIRMED", dueDate: { lt: today } }, _sum: { total: true, amountPaid: true }, _count: true }),
     db.subscription.count({ where: { status: "CLOSED", closedAt: { gte: addDays(today, -30) } } }),
-    mrr(),
+    mrr(db),
   ]);
   return {
     active,
@@ -46,7 +46,7 @@ export async function headline() {
 const MONTH = new Intl.DateTimeFormat("en-GB", { month: "short", year: "2-digit" });
 
 /** Invoiced and collected per month for the last `months` months (amounts in minor units). */
-export async function monthlyRevenue(months = 12) {
+export async function monthlyRevenue(db: Db, months = 12) {
   const today = startOfDay();
   const start = addMonths(new Date(today.getFullYear(), today.getMonth(), 1), -(months - 1));
   const [payments, invoices, newSubs] = await Promise.all([

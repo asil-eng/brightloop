@@ -1,5 +1,4 @@
 import Link from "next/link";
-import { db } from "@/lib/db";
 import { requireAdmin } from "@/lib/auth";
 import { formatMoney } from "@/lib/money";
 import { formatDate, startOfDay } from "@/lib/dates";
@@ -9,7 +8,7 @@ import { Badge, EmptyState, LinkButton, PageHeader } from "@/components/ui";
 export const metadata = { title: "Discounts" };
 
 export default async function DiscountsPage() {
-  await requireAdmin();
+  const { db } = await requireAdmin();
   const discounts = await db.discount.findMany({
     include: { products: { select: { name: true } }, _count: { select: { subscriptions: true } } },
     orderBy: [{ active: "desc" }, { createdAt: "desc" }],

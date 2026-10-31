@@ -1,10 +1,11 @@
 import "server-only";
 import crypto from "node:crypto";
+import { cache } from "react";
 import bcrypt from "bcryptjs";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import type { Role } from "@prisma/client";
-import { db } from "./db";
+import { rootDb, scopedDb, type Db } from "./db";
 
 const SESSION_COOKIE = "bl_session";
 const SESSION_DAYS = 7;
@@ -31,7 +32,7 @@ export function sha256(value: string): string {
 export async function createSession(userId: string) {
   const token = randomToken();
   const expiresAt = new Date(Date.now() + SESSION_DAYS * 24 * 60 * 60 * 1000);
-  await db.session.create({ data: { id: sha256(token), userId, expiresAt } });
+  await rootDb.session.create({ data: { id: sha256(token), userId, expiresAt } });
   const jar = await cookies();
   jar.set(SESSION_COOKIE, token, {
     httpOnly: true,
@@ -45,21 +46,22 @@ export async function createSession(userId: string) {
 export async function destroySession() {
   const jar = await cookies();
   const token = jar.get(SESSION_COOKIE)?.value;
-  if (token) await db.session.deleteMany({ where: { id: sha256(token) } });
+  if (token) await rootDb.session.deleteMany({ where: { id: sha256(token) } });
   jar.delete(SESSION_COOKIE);
 }
 
-export async function getCurrentUser() {
+/** The logged-in user with their company, plus a database client scoped to that company. Cached per request. */
+export const getCurrentUser = cache(async () => {
   const jar = await cookies();
   const token = jar.get(SESSION_COOKIE)?.value;
   if (!token) return null;
-  const session = await db.session.findUnique({
+  const session = await rootDb.session.findUnique({
     where: { id: sha256(token) },
-    include: { user: { include: { customer: true } } },
+    include: { user: { include: { customer: true, org: true } } },
   });
   if (!session || session.expiresAt < new Date() || !session.user.active) return null;
-  return session.user;
-}
+  return { ...session.user, db: scopedDb(session.user.orgId) as Db };
+});
 
 export type CurrentUser = NonNullable<Awaited<ReturnType<typeof getCurrentUser>>>;
 

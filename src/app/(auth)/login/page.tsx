@@ -13,7 +13,7 @@ export default async function LoginPage({ searchParams }: { searchParams: Promis
   return (
     <>
       <h1 className="text-2xl font-semibold">Log in</h1>
-      <p className="mt-1 text-sm text-zinc-500">Welcome back to Brightloop.</p>
+      <p className="mt-1 text-sm text-zinc-500">For companies, their teams and their customers.</p>
       <ActionForm action={loginAction} className="mt-6 space-y-4">
         <input type="hidden" name="next" value={next ?? ""} />
         <div>
@@ -30,7 +30,10 @@ export default async function LoginPage({ searchParams }: { searchParams: Promis
         <SubmitButton className="w-full">Log in</SubmitButton>
       </ActionForm>
       <p className="mt-6 text-sm text-zinc-600">
-        New customer? <Link href="/signup" className="link">Create an account</Link>
+        Running a subscription business? <Link href="/signup" className="link">Register your company</Link>
+      </p>
+      <p className="mt-2 text-xs text-zinc-500">
+        Customers: use the login details emailed to you by the company you subscribe to.
       </p>
     </>
   );

@@ -1,10 +1,10 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import type { Db } from "@/lib/db";
 import { redirect } from "next/navigation";
-import { db } from "@/lib/db";
 import { requireBackoffice } from "@/lib/auth";
-import { UserError, required, safeAction, str } from "@/lib/action";
+import { ownedOne, required, safeAction, str, UserError } from "@/lib/action";
 import { parseLines } from "@/lib/catalog";
 import { addDays, parseInputDate, startOfDay } from "@/lib/dates";
 import { nextNumber } from "@/lib/sequence";
@@ -20,7 +20,7 @@ import {
   sendQuotation,
 } from "@/lib/subscriptions";
 
-async function readHeader(data: FormData) {
+async function readHeader(db: Db, data: FormData) {
   const customerId = required(data, "customerId", "Customer");
   const planId = required(data, "planId", "Plan");
   const plan = await db.recurringPlan.findUnique({ where: { id: planId } });
@@ -42,8 +42,8 @@ async function readHeader(data: FormData) {
       startDate,
       expiryDate,
       quoteValidUntil,
-      paymentTermId: str(data, "paymentTermId") || null,
-      templateId: str(data, "templateId") || null,
+      paymentTermId: await ownedOne(db.paymentTerm, str(data, "paymentTermId")),
+      templateId: await ownedOne(db.quotationTemplate, str(data, "templateId")),
       note: str(data, "note"),
     },
   };
@@ -62,26 +62,28 @@ function lineCreates(lines: Awaited<ReturnType<typeof parseLines>>) {
 
 export const createSubscription = safeAction(async (data) => {
   const user = await requireBackoffice();
-  const { plan, header } = await readHeader(data);
-  const lines = await parseLines(str(data, "lines"), { minQuantity: plan.minQuantity });
+  const { db } = user;
+  const { plan, header } = await readHeader(db, data);
+  const lines = await parseLines(db, str(data, "lines"), { minQuantity: plan.minQuantity });
   // Add the plan's own price as a line, taxed like the first product.
   if (plan.price > 0 && !lines.some((l) => l.productId === null)) {
     lines.unshift({ productId: null, variantId: null, description: `${plan.name} plan`, quantity: 1, unitPrice: plan.price, taxIds: lines.find((l) => l.productId)?.taxIds ?? [] });
   }
   const sub = await db.$transaction(async (tx) => {
-    const number = await nextNumber("subscription", tx);
+    const number = await nextNumber(tx, "subscription");
     const s = await tx.subscription.create({
       data: { ...header, number, salespersonId: user.id, quoteValidUntil: header.quoteValidUntil ?? addDays(startOfDay(), 30), lines: { create: lineCreates(lines) } },
     });
-    await logActivity("subscription", s.id, header.templateId ? "Quotation created from a template." : "Subscription created.", user.id, tx);
+    await logActivity(tx, "subscription", s.id, header.templateId ? "Quotation created from a template." : "Subscription created.", user.id);
     return s;
   });
-  await recomputeSubscription(sub.id);
+  await recomputeSubscription(db, sub.id);
   redirect(`/app/subscriptions/${sub.id}`);
 });
 
 export const updateSubscription = safeAction(async (data) => {
   const user = await requireBackoffice();
+  const { db } = user;
   const id = required(data, "id", "Subscription");
   const current = await db.subscription.findUniqueOrThrow({ where: { id }, include: { plan: true } });
   if (current.status === "CLOSED") throw new UserError("Closed subscriptions can't be changed.");
@@ -90,23 +92,23 @@ export const updateSubscription = safeAction(async (data) => {
   let minQuantity = current.plan.minQuantity;
   let headerData = {};
   if (editableHeader) {
-    const { plan, header } = await readHeader(data);
+    const { plan, header } = await readHeader(db, data);
     minQuantity = plan.minQuantity;
     headerData = header;
   } else {
     // After confirmation only the expiry date, payment terms and note can change.
     const expiryDate = parseInputDate(data.get("expiryDate"));
     if (expiryDate && expiryDate <= current.startDate) throw new UserError("The expiry date must be after the start date.");
-    headerData = { expiryDate, paymentTermId: str(data, "paymentTermId") || null, note: str(data, "note") };
+    headerData = { expiryDate, paymentTermId: await ownedOne(db.paymentTerm, str(data, "paymentTermId")), note: str(data, "note") };
   }
-  const lines = await parseLines(str(data, "lines"), { minQuantity });
+  const lines = await parseLines(db, str(data, "lines"), { minQuantity });
 
   await db.$transaction(async (tx) => {
     await tx.subscriptionLine.deleteMany({ where: { subscriptionId: id } });
     await tx.subscription.update({ where: { id }, data: { ...headerData, lines: { create: lineCreates(lines) } } });
-    await logActivity("subscription", id, editableHeader ? "Quotation updated." : "Subscription lines updated (applies from the next invoice).", user.id, tx);
+    await logActivity(tx, "subscription", id, editableHeader ? "Quotation updated." : "Subscription lines updated (applies from the next invoice).", user.id);
   });
-  await recomputeSubscription(id);
+  await recomputeSubscription(db, id);
   revalidatePath(`/app/subscriptions/${id}`);
   return { ok: "Saved." };
 });
@@ -114,41 +116,42 @@ export const updateSubscription = safeAction(async (data) => {
 /** One endpoint for every status button on the subscription form. */
 export const subscriptionAction = safeAction(async (data) => {
   const user = await requireBackoffice();
+  const { db } = user;
   const id = required(data, "id", "Subscription");
   const op = required(data, "op", "Action");
   const actor = { id: user.id, role: user.role };
   let ok = "";
   switch (op) {
     case "send":
-      await sendQuotation(id, actor);
+      await sendQuotation(db, id, actor);
       ok = "Quotation sent to the customer.";
       break;
     case "confirm":
-      await confirmSubscription(id, actor);
+      await confirmSubscription(db, id, actor);
       ok = "Subscription confirmed.";
       break;
     case "activate":
-      await activateSubscription(id, actor);
+      await activateSubscription(db, id, actor);
       ok = "Subscription started.";
       break;
     case "pause":
-      await pauseSubscription(id, actor);
+      await pauseSubscription(db, id, actor);
       ok = "Subscription paused.";
       break;
     case "resume":
-      await resumeSubscription(id, actor);
+      await resumeSubscription(db, id, actor);
       ok = "Subscription resumed.";
       break;
     case "renew":
-      await renew(id, actor);
+      await renew(db, id, actor);
       ok = "Subscription renewed.";
       break;
     case "close":
-      await closeSubscription(id, actor, str(data, "reasonId"));
+      await closeSubscription(db, id, actor, str(data, "reasonId"));
       ok = "Subscription closed.";
       break;
     case "invoice": {
-      const invoiceId = await invoiceNextPeriod(id, { userId: user.id });
+      const invoiceId = await invoiceNextPeriod(db, id, { userId: user.id });
       if (!invoiceId) throw new UserError("The next period has already been invoiced.");
       redirect(`/app/invoices/${invoiceId}`);
     }

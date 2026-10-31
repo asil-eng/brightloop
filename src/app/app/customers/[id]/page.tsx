@@ -1,6 +1,5 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { db } from "@/lib/db";
 import { requireBackoffice } from "@/lib/auth";
 import { formatMoney } from "@/lib/money";
 import { formatDate } from "@/lib/dates";
@@ -8,11 +7,11 @@ import { Badge, Card, LinkButton, PageHeader, SmartButton } from "@/components/u
 import { ActionForm, SubmitButton } from "@/components/form";
 import { Chatter } from "@/components/chatter";
 import { CustomerForm } from "../customer-form";
-import { inviteToPortal, updateCustomer } from "../actions";
+import { resendLogin, updateCustomer } from "../actions";
 import { invoiceBadge } from "@/lib/status";
 
 export default async function CustomerPage({ params }: { params: Promise<{ id: string }> }) {
-  await requireBackoffice();
+  const { db } = await requireBackoffice();
   const { id } = await params;
   const customer = await db.customer.findUnique({
     where: { id },
@@ -81,14 +80,18 @@ export default async function CustomerPage({ params }: { params: Promise<{ id: s
           </Card>
         </div>
         <div className="space-y-5">
-          <Card title="Portal access">
-            {customer.user ? (
-              <p className="text-sm text-zinc-700">✓ Can log in to the customer portal as <span className="font-medium">{customer.user.email}</span>.</p>
+          <Card title="Customer login">
+            {customer.user?.passwordHash ? (
+              <p className="text-sm text-zinc-700">✓ Active. Logs in to the customer portal as <span className="font-medium">{customer.user.email}</span>.</p>
             ) : (
-              <ActionForm action={inviteToPortal}>
+              <p className="mb-3 text-sm text-zinc-600">
+                {customer.user ? "Login details were emailed. Waiting for the customer to set their password." : "This customer doesn't have a login yet."}
+              </p>
+            )}
+            {!customer.user?.passwordHash && (
+              <ActionForm action={resendLogin}>
                 <input type="hidden" name="id" value={customer.id} />
-                <p className="mb-3 text-sm text-zinc-600">This customer can&apos;t log in yet. Send them an invitation to set a password.</p>
-                <SubmitButton size="sm" variant="secondary">Invite to portal</SubmitButton>
+                <SubmitButton size="sm" variant="secondary">{customer.user ? "Resend login email" : "Send login email"}</SubmitButton>
               </ActionForm>
             )}
           </Card>

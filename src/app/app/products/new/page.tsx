@@ -1,4 +1,3 @@
-import { db } from "@/lib/db";
 import { requireAdmin } from "@/lib/auth";
 import { Card, PageHeader } from "@/components/ui";
 import { ProductForm } from "../product-form";
@@ -7,7 +6,7 @@ import { createProduct } from "../actions";
 export const metadata = { title: "New product" };
 
 export default async function NewProductPage() {
-  await requireAdmin();
+  const { db } = await requireAdmin();
   const taxes = await db.tax.findMany({ where: { active: true }, orderBy: { name: "asc" } });
   return (
     <>

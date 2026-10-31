@@ -1,4 +1,3 @@
-import { db } from "@/lib/db";
 import { requireBackoffice } from "@/lib/auth";
 import { loadCatalog } from "@/lib/catalog";
 import { Card, PageHeader } from "@/components/ui";
@@ -8,9 +7,9 @@ import { createTemplate } from "../actions";
 export const metadata = { title: "New template" };
 
 export default async function NewTemplatePage() {
-  await requireBackoffice();
+  const { db } = await requireBackoffice();
   const [{ products, taxes }, plans, terms] = await Promise.all([
-    loadCatalog(),
+    loadCatalog(db),
     db.recurringPlan.findMany({ where: { active: true }, orderBy: { name: "asc" } }),
     db.paymentTerm.findMany({ orderBy: { dueDays: "asc" } }),
   ]);

@@ -1,12 +1,11 @@
 import { notFound } from "next/navigation";
-import { db } from "@/lib/db";
 import { requireAdmin } from "@/lib/auth";
 import { Card, PageHeader } from "@/components/ui";
 import { DiscountForm } from "../discount-form";
 import { updateDiscount } from "../actions";
 
 export default async function DiscountPage({ params }: { params: Promise<{ id: string }> }) {
-  await requireAdmin();
+  const { db } = await requireAdmin();
   const { id } = await params;
   const [discount, products] = await Promise.all([
     db.discount.findUnique({ where: { id }, include: { products: true, subscriptions: { select: { number: true } } } }),

@@ -1,14 +1,14 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import type { Db } from "@/lib/db";
 import { redirect } from "next/navigation";
-import { db } from "@/lib/db";
 import { requireAdmin } from "@/lib/auth";
-import { UserError, bool, required, safeAction, str } from "@/lib/action";
+import { UserError, bool, owned, required, safeAction, str } from "@/lib/action";
 import { toMinor } from "@/lib/money";
 import { parseInputDate } from "@/lib/dates";
 
-async function readDiscount(data: FormData) {
+async function readDiscount(db: Db, data: FormData) {
   const type = str(data, "type");
   const scope = str(data, "scope");
   if (type !== "FIXED" && type !== "PERCENT") throw new UserError("Choose a discount type.");
@@ -28,7 +28,7 @@ async function readDiscount(data: FormData) {
   const endDate = parseInputDate(data.get("endDate"));
   if (startDate && endDate && endDate < startDate) throw new UserError("The end date must be after the start date.");
 
-  const productIds = data.getAll("productIds").map(String);
+  const productIds = await owned(db.product, data.getAll("productIds").map(String));
   if (scope === "PRODUCTS" && !productIds.length) throw new UserError("Choose at least one product.");
 
   // Subscriptions are entered by number, e.g. "SUB/00012, SUB/00040".
@@ -56,8 +56,8 @@ async function readDiscount(data: FormData) {
 }
 
 export const createDiscount = safeAction(async (data) => {
-  await requireAdmin();
-  const { fields, productIds, subscriptionIds } = await readDiscount(data);
+  const { db } = await requireAdmin();
+  const { fields, productIds, subscriptionIds } = await readDiscount(db, data);
   const d = await db.discount.create({
     data: { ...fields, products: { connect: productIds.map((id) => ({ id })) }, subscriptions: { connect: subscriptionIds.map((id) => ({ id })) } },
   });
@@ -65,9 +65,9 @@ export const createDiscount = safeAction(async (data) => {
 });
 
 export const updateDiscount = safeAction(async (data) => {
-  await requireAdmin();
+  const { db } = await requireAdmin();
   const id = required(data, "id", "Discount");
-  const { fields, productIds, subscriptionIds } = await readDiscount(data);
+  const { fields, productIds, subscriptionIds } = await readDiscount(db, data);
   await db.discount.update({
     where: { id },
     data: { ...fields, products: { set: productIds.map((id) => ({ id })) }, subscriptions: { set: subscriptionIds.map((id) => ({ id })) } },

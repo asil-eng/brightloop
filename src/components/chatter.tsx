@@ -1,5 +1,5 @@
-import { db } from "@/lib/db";
 import { formatDateTime } from "@/lib/dates";
+import { requireBackoffice } from "@/lib/auth";
 import type { EntityType } from "@/lib/activity";
 import { ActionForm, SubmitButton } from "./form";
 import { Card } from "./ui";
@@ -7,6 +7,7 @@ import { addNote } from "@/app/app/chatter-actions";
 
 /** Odoo-style chatter: the record's history plus internal notes. */
 export async function Chatter({ entityType, entityId, path }: { entityType: EntityType; entityId: string; path: string }) {
+  const { db } = await requireBackoffice();
   const activities = await db.activity.findMany({
     where: { entityType, entityId },
     include: { user: { select: { name: true } } },

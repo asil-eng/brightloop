@@ -1,6 +1,6 @@
 import "server-only";
 import { PDFDocument, StandardFonts, rgb } from "pdf-lib";
-import { db } from "./db";
+import type { Db } from "./db";
 import { formatDate } from "./dates";
 
 // pdf-lib's standard fonts only cover WinAnsi, so amounts use "Rs." instead of the rupee sign.
@@ -13,12 +13,12 @@ function ascii(s: string) {
   return s.replace(/[^\x20-\x7E]/g, "?");
 }
 
-export async function invoicePdf(invoiceId: string): Promise<Uint8Array> {
+export async function invoicePdf(db: Db, invoiceId: string): Promise<Uint8Array> {
   const inv = await db.invoice.findUniqueOrThrow({
     where: { id: invoiceId },
     include: { lines: true, customer: true, subscription: true },
   });
-  const company = await db.company.findUnique({ where: { id: 1 } });
+  const company = await db.organization.findFirst();
 
   const pdf = await PDFDocument.create();
   const page = pdf.addPage([595, 842]); // A4
@@ -37,7 +37,7 @@ export async function invoicePdf(invoiceId: string): Promise<Uint8Array> {
 
   // Header band
   page.drawRectangle({ x: 0, y: 782, width: 595, height: 60, color: purple });
-  text(company?.name ?? "Brightloop Software", 40, 806, { size: 18, b: true, color: rgb(1, 1, 1) });
+  text(company?.name ?? "", 40, 806, { size: 18, b: true, color: rgb(1, 1, 1) });
   text(company?.email ?? "", 555, 812, { size: 9, color: rgb(1, 1, 1), right: true });
   text(company?.address ?? "", 555, 798, { size: 9, color: rgb(1, 1, 1), right: true });
 

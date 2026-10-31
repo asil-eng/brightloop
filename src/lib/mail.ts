@@ -1,5 +1,5 @@
 import nodemailer, { type Transporter } from "nodemailer";
-import { db } from "./db";
+import type { Db } from "./db";
 
 type Attachment = { filename: string; content: Buffer | Uint8Array; contentType?: string };
 
@@ -55,12 +55,13 @@ function renderHtml(o: SendOptions, companyName: string) {
  * logged with its error so staff can see it, instead of breaking the action.
  * Without SMTP settings the email is printed to the server console (dev mode).
  */
-export async function sendMail(o: SendOptions): Promise<boolean> {
-  const company = await db.company.findUnique({ where: { id: 1 } });
-  const companyName = company?.name ?? "Brightloop Software";
-  const html = renderHtml(o, companyName);
+export async function sendMail(db: Db, o: SendOptions): Promise<boolean> {
+  // Emails go out under the sending company's name, with replies going to its own address.
+  const company = await db.organization.findFirstOrThrow();
+  const html = renderHtml(o, company.name);
   const text = [o.heading, "", ...o.paragraphs, o.button ? `${o.button.label}: ${o.button.url}` : ""].join("\n");
-  const from = process.env.MAIL_FROM ?? `${companyName} <billing@brightloop.test>`;
+  const from = `"${company.name.replace(/"/g, "")}" <${process.env.MAIL_FROM_ADDRESS ?? "billing@brightloop.test"}>`;
+  const replyTo = company.email || undefined;
 
   let status = "sent";
   let error = "";
@@ -72,6 +73,7 @@ export async function sendMail(o: SendOptions): Promise<boolean> {
       try {
         await t.sendMail({
           from,
+          replyTo,
           to: o.to,
           subject: o.subject,
           html,

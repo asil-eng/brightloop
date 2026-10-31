@@ -47,3 +47,5 @@ export function bool(data: FormData, key: string): boolean {
 }
 
 export const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+export { owned, ownedOne } from "./owned";

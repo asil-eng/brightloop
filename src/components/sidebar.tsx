@@ -60,7 +60,7 @@ const groups: { title: string; items: Item[] }[] = [
   },
 ];
 
-export function Sidebar({ isAdmin, user, logout }: { isAdmin: boolean; user: { name: string; role: string }; logout: () => Promise<void> }) {
+export function Sidebar({ isAdmin, user, company, logout }: { isAdmin: boolean; user: { name: string; role: string }; company: string; logout: () => Promise<void> }) {
   const pathname = usePathname();
   const [open, setOpen] = useState(false);
 
@@ -109,7 +109,7 @@ export function Sidebar({ isAdmin, user, logout }: { isAdmin: boolean; user: { n
     <>
       {/* Mobile top bar */}
       <div className="no-print sticky top-0 z-30 flex items-center justify-between bg-brand-600 px-4 py-3 text-white lg:hidden">
-        <span className="font-bold">brightloop</span>
+        <span className="truncate font-bold">{company}</span>
         <button onClick={() => setOpen(!open)} aria-label="Toggle menu">
           {open ? <X size={20} /> : <Menu size={20} />}
         </button>
@@ -121,8 +121,9 @@ export function Sidebar({ isAdmin, user, logout }: { isAdmin: boolean; user: { n
         </div>
       )}
       <aside className="no-print sticky top-0 hidden h-screen w-60 shrink-0 flex-col bg-brand-700 lg:flex">
-        <Link href="/app" className="px-5 py-4 text-lg font-bold tracking-tight text-white">
-          brightloop
+        <Link href="/app" className="px-5 py-4">
+          <span className="block truncate text-lg font-bold tracking-tight text-white">{company}</span>
+          <span className="text-[11px] uppercase tracking-wider text-brand-200">on brightloop</span>
         </Link>
         {nav}
         {footer}

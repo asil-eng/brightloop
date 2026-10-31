@@ -1,5 +1,4 @@
 import Link from "next/link";
-import { db } from "@/lib/db";
 import { requireBackoffice } from "@/lib/auth";
 import { formatMoney } from "@/lib/money";
 import { formatDate, periodLabel } from "@/lib/dates";
@@ -11,6 +10,7 @@ const yes = (b: boolean) => (b ? "✓" : "—");
 
 export default async function PlansPage() {
   const user = await requireBackoffice();
+  const { db } = user;
   const plans = await db.recurringPlan.findMany({
     orderBy: [{ active: "desc" }, { name: "asc" }],
     include: { _count: { select: { subscriptions: { where: { status: "ACTIVE" } } } } },

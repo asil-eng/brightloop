@@ -1,6 +1,5 @@
 import { NextResponse } from "next/server";
 import type { Prisma } from "@prisma/client";
-import { db } from "@/lib/db";
 import { getCurrentUser } from "@/lib/auth";
 import { parseInputDate, startOfDay, toInputDate } from "@/lib/dates";
 import { METHOD_LABEL } from "@/lib/status";
@@ -21,6 +20,7 @@ export async function GET(req: Request, { params }: { params: Promise<{ kind: st
   const user = await getCurrentUser();
   if (!user || user.role === "CUSTOMER") return new NextResponse("Forbidden", { status: 403 });
   const { kind } = await params;
+  const { db } = user;
   const sp = new URL(req.url).searchParams;
   const today = startOfDay();
   let rows: (string | number | null)[][] = [];

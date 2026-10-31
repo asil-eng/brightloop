@@ -1,6 +1,5 @@
 import Link from "next/link";
 import type { Prisma } from "@prisma/client";
-import { db } from "@/lib/db";
 import { requireBackoffice } from "@/lib/auth";
 import { formatMoney } from "@/lib/money";
 import { Badge, LinkButton, PageHeader, EmptyState } from "@/components/ui";
@@ -10,6 +9,7 @@ export const metadata = { title: "Products" };
 
 export default async function ProductsPage({ searchParams }: { searchParams: SearchParams }) {
   const user = await requireBackoffice();
+  const { db } = user;
   const sp = await searchParams;
   const page = pageOf(sp);
   const q = param(sp, "q");
@@ -33,7 +33,7 @@ export default async function ProductsPage({ searchParams }: { searchParams: Sea
     <>
       <PageHeader
         title="Products"
-        subtitle="What Brightloop sells: services, add-ons and goods."
+        subtitle="What you sell: services, add-ons and goods."
         actions={user.role === "ADMIN" && <LinkButton href="/app/products/new" variant="primary">New product</LinkButton>}
       />
       <SearchBar

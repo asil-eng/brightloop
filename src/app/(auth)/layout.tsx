@@ -8,14 +8,15 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
           brightloop
         </Link>
         <div>
-          <h2 className="text-3xl font-semibold leading-tight">Plans, subscriptions and recurring billing in one place.</h2>
+          <h2 className="text-3xl font-semibold leading-tight">Run your subscription business in one place.</h2>
           <ul className="mt-6 space-y-2 text-brand-100">
-            <li>• Invoices created and sent automatically on billing day</li>
-            <li>• Taxes and discounts applied for you</li>
-            <li>• See and pay your invoices online, any time</li>
+            <li>• Products, plans, quotations and subscriptions</li>
+            <li>• Invoices created and emailed automatically on billing day</li>
+            <li>• Taxes, discounts, payments and revenue reports</li>
+            <li>• A portal where your customers see and pay their invoices</li>
           </ul>
         </div>
-        <p className="text-sm text-brand-200">© Brightloop Software</p>
+        <p className="text-sm text-brand-200">© Brightloop</p>
       </aside>
       <main className="flex items-center justify-center p-6">
         <div className="w-full max-w-sm">{children}</div>

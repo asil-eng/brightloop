@@ -1,6 +1,6 @@
 import "server-only";
 import { Prisma, type PaymentMethod } from "@prisma/client";
-import { db } from "./db";
+import type { Db, Tx } from "./db";
 import { addDays, addMonths, addPeriod, formatDate, startOfDay } from "./dates";
 import { applyDiscounts, computeLine, sumLines, taxLabel, type DiscountRule } from "./pricing";
 import { nextNumber } from "./sequence";
@@ -9,14 +9,12 @@ import { appUrl, sendMail } from "./mail";
 import { formatMoney } from "./money";
 import { invoicePdf } from "./pdf";
 
-type Tx = Prisma.TransactionClient;
-
 export class BillingError extends Error {}
 
 // ───────────── Subscription totals ─────────────
 
 /** Recalculate every line and the header totals of a subscription from its taxes. */
-export async function recomputeSubscription(subscriptionId: string, tx: Tx = db) {
+export async function recomputeSubscription(tx: Tx, subscriptionId: string) {
   const lines = await tx.subscriptionLine.findMany({ where: { subscriptionId }, include: { taxes: true } });
   const amounts = lines.map((l) => computeLine(l.unitPrice, l.quantity, l.taxes));
   await Promise.all(
@@ -31,7 +29,7 @@ export async function recomputeSubscription(subscriptionId: string, tx: Tx = db)
 
 // ───────────── Discounts ─────────────
 
-export async function loadDiscountRules(tx: Tx = db): Promise<DiscountRule[]> {
+export async function loadDiscountRules(tx: Tx): Promise<DiscountRule[]> {
   const rows = await tx.discount.findMany({
     where: { active: true },
     include: { products: { select: { id: true } }, subscriptions: { select: { id: true } } },
@@ -56,10 +54,11 @@ function billingKey(subscriptionId: string, periodStart: Date) {
  * if the period was already invoiced, this returns null and changes nothing.
  */
 export async function invoiceNextPeriod(
+  db: Db,
   subscriptionId: string,
   opts: { userId?: string | null; discounts?: DiscountRule[] } = {},
 ): Promise<string | null> {
-  const discounts = opts.discounts ?? (await loadDiscountRules());
+  const discounts = opts.discounts ?? (await loadDiscountRules(db));
 
   try {
     return await db.$transaction(async (tx) => {
@@ -138,13 +137,12 @@ export async function invoiceNextPeriod(
         data: { nextInvoiceDate: stillBilling ? nextStart : null },
       });
       await logActivity(
+        tx,
         "subscription",
         sub.id,
         `Invoice created for ${formatDate(periodStart)} – ${formatDate(periodEnd)}.`,
-        opts.userId,
-        tx,
-      );
-      await logActivity("invoice", invoice.id, `Invoice created from ${sub.number}.`, opts.userId, tx);
+        opts.userId);
+      await logActivity(tx, "invoice", invoice.id, `Invoice created from ${sub.number}.`, opts.userId);
       return invoice.id;
     });
   } catch (e) {
@@ -156,17 +154,17 @@ export async function invoiceNextPeriod(
 
 // ───────────── Invoice actions ─────────────
 
-export async function confirmInvoice(invoiceId: string, userId?: string | null) {
+export async function confirmInvoice(db: Db, invoiceId: string, userId?: string | null) {
   await db.$transaction(async (tx) => {
     const inv = await tx.invoice.findUniqueOrThrow({ where: { id: invoiceId } });
     if (inv.status !== "DRAFT") throw new BillingError("Only draft invoices can be confirmed.");
-    const number = await nextNumber("invoice", tx);
+    const number = await nextNumber(tx, "invoice");
     await tx.invoice.update({ where: { id: invoiceId }, data: { status: "CONFIRMED", number } });
-    await logActivity("invoice", invoiceId, `Invoice confirmed as ${number}.`, userId, tx);
+    await logActivity(tx, "invoice", invoiceId, `Invoice confirmed as ${number}.`, userId);
   });
 }
 
-export async function cancelInvoice(invoiceId: string, userId?: string | null) {
+export async function cancelInvoice(db: Db, invoiceId: string, userId?: string | null) {
   await db.$transaction(async (tx) => {
     const inv = await tx.invoice.findUniqueOrThrow({ where: { id: invoiceId }, include: { lines: true } });
     if (inv.status === "CANCELLED") return;
@@ -177,17 +175,17 @@ export async function cancelInvoice(invoiceId: string, userId?: string | null) {
     for (const id of discountIds) {
       await tx.discount.updateMany({ where: { id, usedCount: { gt: 0 } }, data: { usedCount: { decrement: 1 } } });
     }
-    await logActivity("invoice", invoiceId, "Invoice cancelled.", userId, tx);
+    await logActivity(tx, "invoice", invoiceId, "Invoice cancelled.", userId);
   });
 }
 
-export async function sendInvoice(invoiceId: string, userId?: string | null) {
+export async function sendInvoice(db: Db, invoiceId: string, userId?: string | null) {
   const inv = await db.invoice.findUniqueOrThrow({ where: { id: invoiceId }, include: { customer: true } });
-  if (inv.status === "DRAFT") await confirmInvoice(invoiceId, userId);
+  if (inv.status === "DRAFT") await confirmInvoice(db, invoiceId, userId);
   if (inv.status === "CANCELLED") throw new BillingError("Cancelled invoices cannot be sent.");
   const fresh = await db.invoice.findUniqueOrThrow({ where: { id: invoiceId } });
-  const pdf = await invoicePdf(invoiceId);
-  const ok = await sendMail({
+  const pdf = await invoicePdf(db, invoiceId);
+  const ok = await sendMail(db, {
     to: inv.customer.email,
     subject: `Invoice ${fresh.number} — ${formatMoney(fresh.total)}`,
     heading: `Invoice ${fresh.number}`,
@@ -201,13 +199,13 @@ export async function sendInvoice(invoiceId: string, userId?: string | null) {
     entity: { type: "invoice", id: invoiceId },
   });
   await db.invoice.update({ where: { id: invoiceId }, data: { sentAt: new Date() } });
-  await logActivity("invoice", invoiceId, ok ? `Invoice emailed to ${inv.customer.email}.` : `Sending to ${inv.customer.email} failed.`, userId);
+  await logActivity(db, "invoice", invoiceId, ok ? `Invoice emailed to ${inv.customer.email}.` : `Sending to ${inv.customer.email} failed.`, userId);
   return ok;
 }
 
 // ───────────── Payments ─────────────
 
-export async function registerPayment(input: {
+export async function registerPayment(db: Db, input: {
   invoiceId: string;
   amount: number;
   method: PaymentMethod;
@@ -223,7 +221,7 @@ export async function registerPayment(input: {
     if (!(input.amount > 0)) throw new BillingError("The amount must be greater than zero.");
     if (input.amount > due) throw new BillingError(`The amount is more than what is due (${formatMoney(due)}).`);
 
-    const number = await nextNumber("payment", tx);
+    const number = await nextNumber(tx, "payment");
     const p = await tx.payment.create({
       data: {
         number,
@@ -243,12 +241,11 @@ export async function registerPayment(input: {
       data: { amountPaid, status: paid ? "PAID" : "CONFIRMED" },
     });
     await logActivity(
+      tx,
       "invoice",
       inv.id,
       `Payment ${number} of ${formatMoney(input.amount)} recorded (${input.method.replace("_", " ").toLowerCase()}).${paid ? " Invoice fully paid." : ""}`,
-      input.userId,
-      tx,
-    );
+      input.userId);
     return p;
   });
 
@@ -256,7 +253,7 @@ export async function registerPayment(input: {
     where: { id: payment.id },
     include: { invoice: { include: { customer: true } } },
   });
-  await sendMail({
+  await sendMail(db, {
     to: full.invoice.customer.email,
     subject: `Payment received — ${formatMoney(full.amount)}`,
     heading: "Thank you for your payment",
@@ -282,7 +279,7 @@ function contractMonths(start: Date, expiry: Date) {
 }
 
 /** Extend a subscription by the length of its original term and resume billing. */
-export async function renewSubscription(subscriptionId: string, userId?: string | null, tx: Tx = db) {
+export async function renewSubscription(tx: Tx, subscriptionId: string, userId?: string | null) {
   const sub = await tx.subscription.findUniqueOrThrow({ where: { id: subscriptionId }, include: { plan: true } });
   if (!sub.plan.renewable) throw new BillingError("This plan does not allow renewal.");
   if (!sub.expiryDate) throw new BillingError("This subscription has no expiry date, so it renews automatically.");
@@ -300,5 +297,5 @@ export async function renewSubscription(subscriptionId: string, userId?: string 
       closeReasonId: null,
     },
   });
-  await logActivity("subscription", sub.id, `Subscription renewed until ${formatDate(newExpiry)}.`, userId, tx);
+  await logActivity(tx, "subscription", sub.id, `Subscription renewed until ${formatDate(newExpiry)}.`, userId);
 }

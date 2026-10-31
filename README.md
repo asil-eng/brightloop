@@ -1,16 +1,25 @@
 # Brightloop: Subscription Management System
 
-One system to run plans, subscriptions and recurring billing in one place. Built for the **Odoo hackathon** brief
-*"Subscription Management System"*. It follows the way **Odoo Subscriptions** works, but is built from scratch.
+A subscription management platform that **any business can register for** and use to run plans, subscriptions and
+recurring billing in one place. Built for the **Odoo hackathon** brief *"Subscription Management System"*. It follows
+the way **Odoo Subscriptions** works, but is built from scratch.
 
-Brightloop Software sells software on subscription. The admin sets up products, plans, taxes and discounts. Internal staff
-handle customers day to day. Customers see and manage their own subscriptions in a portal and pay online.
+**How it works:**
+
+1. A business (for example *Brightloop Software*, the company from the brief) **registers** on the sign-up page. It
+   gets its own private workspace, and the person who registered becomes its **admin**.
+2. The admin sets up products, plans, taxes and discounts, and **invites staff**, who handle customers day to day.
+3. Staff **add the company's customers**. Customers don't sign up themselves: each one automatically gets an email with
+   a link to set their password, then logs in to the **customer portal** to see, manage and pay for their subscriptions.
+
+Every company's data is kept separate. One company can never see or change another company's records.
 
 ## Features
 
 | Area | What it does |
 |---|---|
-| **Accounts & roles** | Sign up (one account per email; password must be **more than 8 characters** with an uppercase letter, a lowercase letter and a special character), log in, **forgot-password email with a one-time reset link**. Three roles: **Admin** (everything), **Internal staff** (day-to-day work, no settings or discounts), **Customer** (portal, own data only). **Only the admin can add staff** (email invitation). Checked on the server for every request. |
+| **Companies** | Any business registers its company (company name, owner, email, password) and gets its own workspace with default GST taxes, payment terms and close reasons, plus a *Get started* checklist. All its data is isolated: every query is filtered to the logged-in user's company in one central place, form-supplied ids are checked to belong to the company, and the database refuses records without a company. Invoices, emails and PDFs carry the company's own name and details, and document numbers (SUB/INV/PAY) count from 1 per company. |
+| **Accounts & roles** | One login page for everyone; one account per email; password must be **more than 8 characters** with an uppercase letter, a lowercase letter and a special character; **forgot-password email with a one-time reset link**. Three roles per company: **Admin** (everything), **Internal staff** (day-to-day work, no settings or discounts), **Customer** (portal, own data only). **Only the admin can add staff.** Customers have **no public sign-up**: when staff add a customer, the customer is emailed a one-time link to set their password and log in. Checked on the server for every request. |
 | **Products & variants** | Name, type (service / add-on / goods), sales price, cost price, notes, taxes. Attributes with values that add an extra price, e.g. **Brand: Odoo → +₹560**. Variants are generated from every combination. |
 | **Recurring plans** | Price, billing period (**daily, weekly, monthly, yearly**, every N), **minimum quantity**, **availability dates**, and per-plan options: **closes automatically**, **can be closed early**, **can be paused**, **can be renewed**. |
 | **Quotation templates** | Plan, product lines, **validity in days** and payment terms. One click turns a template into a quotation. |
@@ -25,7 +34,7 @@ handle customers day to day. Customers see and manage their own subscriptions in
 | **Automation & email** | Daily jobs: start subscriptions, invoice, close or auto-renew expired subscriptions, expire quotations and discounts, **overdue reminders**, **renewal reminders**. Every email is logged. Admins can run the jobs now from Settings. |
 
 **Performance:** with **5,000 subscriptions, 23,000 invoices and 20,000 payments**, every page responds in **under 0.15 s**
-on a laptop in production mode (target: under 2 s). Lists are paginated, filtered columns are indexed, and totals are
+on a laptop in production mode (target: under 2 s), including the per-company filtering. Lists are paginated, filtered columns are indexed, and totals are
 calculated in the database.
 
 ## Tech stack
@@ -52,13 +61,22 @@ npm run dev                 # http://localhost:3000
 
 ### Demo logins
 
-| Role | Email | Password |
-|---|---|---|
-| Admin | `admin@brightloop.test` | `Admin@1234` |
-| Internal staff | `staff@brightloop.test` | `Staff@1234` |
-| Customer (portal) | `customer@brightloop.test` | `Customer@123` |
+The seed creates two companies so you can see that their data is kept apart. Or register your own company at
+`/signup`.
+
+| Company | Role | Email | Password |
+|---|---|---|---|
+| Brightloop Software (~1,200 subscriptions) | Admin | `admin@brightloop.test` | `Admin@1234` |
+| | Internal staff | `staff@brightloop.test` | `Staff@1234` |
+| | Customer (portal) | `customer@brightloop.test` | `Customer@123` |
+| Nimbus Fitness (~200 subscriptions) | Admin | `admin@nimbusfitness.test` | `Admin@1234` |
+| | Internal staff | `staff@nimbusfitness.test` | `Staff@1234` |
+| | Customer (portal) | `customer@nimbusfitness.test` | `Customer@123` |
 
 For a bigger dataset: `SEED_SUBSCRIPTIONS=5000 npm run db:seed`.
+
+**Customer logins in development:** when staff add a customer, the login email (with its set-password link) is printed
+in the terminal running `npm run dev`, unless SMTP is configured.
 
 **Demo payments:** pay with any 16-digit card (e.g. `4242 4242 4242 4242`, any future expiry, any CVC) or any UPI ID.
 Card `4000 0000 0000 0002` is declined, to show the failure path. No real money moves.
@@ -74,7 +92,7 @@ SMTP_HOST="smtp.gmail.com"
 SMTP_PORT="465"
 SMTP_USER="you@gmail.com"
 SMTP_PASS="your-app-password"
-MAIL_FROM="Brightloop Billing <you@gmail.com>"
+MAIL_FROM_ADDRESS="you@gmail.com"   # emails show the sending company's name
 ```
 
 For a local inbox, run [Mailpit](https://mailpit.axllent.org/) and use `SMTP_HOST=localhost SMTP_PORT=1025`.
@@ -95,12 +113,15 @@ npm run lint
 ```
 
 The integration tests cover the rules that matter most: no double billing, catching up on missed periods, discount
-usage limits, partial payments, cancel-and-rebill, pause stopping billing, and plan rules (auto-close vs. auto-renew,
-closable, pausable).
+usage limits, partial payments, cancel-and-rebill, pause stopping billing, plan rules (auto-close vs. auto-renew,
+closable, pausable), and **company isolation** (another company can't read, list, total, update or pay a company's
+records, numbering is per company, and records can't exist without a company).
 
-The end-to-end tests cover sign-up and password rules, forgot password, staff turning a template into a subscription
-and billing it, a customer paying online (declined then approved), switching add-ons on and off, staff recording a
-partial payment, and customers being kept out of the back office.
+The end-to-end tests cover company registration (password rules, one account per email, empty workspace), forgot
+password, staff adding a customer who receives a login link and sets a password, turning a template into a
+subscription and billing it, the customer paying online (declined then approved), switching add-ons on and off, staff
+recording a partial payment, one company being unable to open another's records, and customers being kept out of the
+back office.
 
 ## Project structure
 
@@ -114,11 +135,14 @@ src/
     billing.ts           invoice generation, payments, renewals
     subscriptions.ts     subscription lifecycle (confirm, pause, resume, close…)
     jobs.ts              daily jobs: billing run, expiry, reminders
+    db.ts                rootDb + scopedDb(orgId): the company-scoped database client
+    company.ts           company registration (workspace + admin + defaults)
+    portal-access.ts     customer login emails (one-time set-password link)
     auth.ts, password.ts sessions, roles, password rules
     mail.ts, pdf.ts      email and invoice PDFs
     metrics.ts           MRR/ARR, revenue and dashboard numbers
   app/
-    (auth)/              login, sign-up, forgot/reset password
+    (auth)/              login, company registration, forgot/reset password
     app/                 back office (admin + staff)
     portal/              customer portal
     api/                 invoice PDF, CSV reports, cron
@@ -129,7 +153,7 @@ e2e/                     Playwright tests
 
 ### Data model
 
-`User` · `Session` · `PasswordResetToken` · `Company` · `Customer` · `Product` · `Attribute` · `AttributeValue` ·
+`Organization` (company) · `User` · `Session` · `PasswordResetToken` · `Customer` · `Product` · `Attribute` · `AttributeValue` ·
 `ProductVariant` · `Tax` · `RecurringPlan` · `PaymentTerm` · `QuotationTemplate` / `TemplateLine` · `Subscription` /
 `SubscriptionLine` · `Discount` · `Invoice` / `InvoiceLine` · `Payment` · `CloseReason` · `Activity` (chatter) ·
 `EmailLog` · `Sequence` (document numbers)

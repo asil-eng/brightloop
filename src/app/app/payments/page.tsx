@@ -1,6 +1,5 @@
 import Link from "next/link";
 import type { PaymentMethod, Prisma } from "@prisma/client";
-import { db } from "@/lib/db";
 import { requireBackoffice } from "@/lib/auth";
 import { formatMoney } from "@/lib/money";
 import { formatDate, parseInputDate } from "@/lib/dates";
@@ -11,7 +10,7 @@ import { PAGE_SIZE, Pagination, SearchBar, pageOf, param, type SearchParams } fr
 export const metadata = { title: "Payments" };
 
 export default async function PaymentsPage({ searchParams }: { searchParams: SearchParams }) {
-  await requireBackoffice();
+  const { db } = await requireBackoffice();
   const sp = await searchParams;
   const page = pageOf(sp);
   const q = param(sp, "q");

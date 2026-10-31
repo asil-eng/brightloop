@@ -6,7 +6,7 @@ export default async function BackofficeLayout({ children }: { children: React.R
   const user = await requireBackoffice();
   return (
     <div className="lg:flex">
-      <Sidebar isAdmin={user.role === "ADMIN"} user={{ name: user.name, role: user.role }} logout={logoutAction} />
+      <Sidebar isAdmin={user.role === "ADMIN"} user={{ name: user.name, role: user.role }} company={user.org.name} logout={logoutAction} />
       <main className="min-w-0 flex-1 px-4 py-6 sm:px-6 lg:px-8">{children}</main>
     </div>
   );

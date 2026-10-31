@@ -1,5 +1,4 @@
 import Link from "next/link";
-import { db } from "@/lib/db";
 import { requireCustomer } from "@/lib/auth";
 import { formatMoney } from "@/lib/money";
 import { formatDate } from "@/lib/dates";
@@ -10,7 +9,7 @@ import { SubscriptionTable } from "./subscription-table";
 export const metadata = { title: "My account" };
 
 export default async function PortalHome() {
-  const { customer } = await requireCustomer();
+  const { customer, db, org } = await requireCustomer();
   const [subs, unpaid, agg] = await Promise.all([
     db.subscription.findMany({ where: { customerId: customer.id, status: { not: "DRAFT" } }, include: { plan: true }, orderBy: { createdAt: "desc" } }),
     db.invoice.findMany({ where: { customerId: customer.id, status: "CONFIRMED" }, orderBy: { dueDate: "asc" } }),
@@ -23,7 +22,7 @@ export default async function PortalHome() {
 
   return (
     <>
-      <PageHeader title={`Welcome, ${customer.name.split(" ")[0]}`} subtitle="Your subscriptions and invoices with Brightloop Software." />
+      <PageHeader title={`Welcome, ${customer.name.split(" ")[0]}`} subtitle={`Your subscriptions and invoices with ${org.name}.`} />
       <div className="grid gap-3 sm:grid-cols-3">
         <StatCard label="Active subscriptions" value={active.length} href="/portal/subscriptions" />
         <StatCard label="Amount due" value={formatMoney(due)} tone={due ? "danger" : "good"} hint={`${unpaid.length} unpaid invoice(s)`} href="/portal/invoices" />

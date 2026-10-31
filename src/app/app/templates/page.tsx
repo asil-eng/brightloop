@@ -1,12 +1,11 @@
 import Link from "next/link";
-import { db } from "@/lib/db";
 import { requireBackoffice } from "@/lib/auth";
 import { LinkButton, PageHeader, EmptyState } from "@/components/ui";
 
 export const metadata = { title: "Quotation templates" };
 
 export default async function TemplatesPage() {
-  await requireBackoffice();
+  const { db } = await requireBackoffice();
   const templates = await db.quotationTemplate.findMany({
     include: { plan: true, paymentTerm: true, _count: { select: { lines: true, subscriptions: true } } },
     orderBy: { name: "asc" },

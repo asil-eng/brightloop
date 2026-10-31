@@ -1,5 +1,4 @@
 import Link from "next/link";
-import { db } from "@/lib/db";
 import { requireCustomer } from "@/lib/auth";
 import { formatMoney } from "@/lib/money";
 import { formatDate } from "@/lib/dates";
@@ -10,7 +9,7 @@ import { PAGE_SIZE, Pagination, pageOf, type SearchParams } from "@/components/l
 export const metadata = { title: "My payments" };
 
 export default async function PortalPayments({ searchParams }: { searchParams: SearchParams }) {
-  const { customer } = await requireCustomer();
+  const { customer, db } = await requireCustomer();
   const sp = await searchParams;
   const page = pageOf(sp);
   const where = { invoice: { customerId: customer.id } };

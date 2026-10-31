@@ -1,12 +1,14 @@
 -- CreateTable
 CREATE TABLE "User" (
+    "orgId" TEXT NOT NULL DEFAULT '',
     "id" TEXT NOT NULL PRIMARY KEY,
     "email" TEXT NOT NULL,
     "name" TEXT NOT NULL,
     "passwordHash" TEXT,
     "role" TEXT NOT NULL DEFAULT 'CUSTOMER',
     "active" BOOLEAN NOT NULL DEFAULT true,
-    "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
+    "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT "User_orgId_fkey" FOREIGN KEY ("orgId") REFERENCES "Organization" ("id") ON DELETE CASCADE ON UPDATE CASCADE
 );
 
 -- CreateTable
@@ -31,27 +33,33 @@ CREATE TABLE "PasswordResetToken" (
 );
 
 -- CreateTable
-CREATE TABLE "Company" (
-    "id" INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT DEFAULT 1,
-    "name" TEXT NOT NULL DEFAULT 'Brightloop Software',
-    "email" TEXT NOT NULL DEFAULT 'billing@brightloop.test',
+CREATE TABLE "Organization" (
+    "id" TEXT NOT NULL PRIMARY KEY,
+    "name" TEXT NOT NULL,
+    "slug" TEXT NOT NULL,
+    "email" TEXT NOT NULL DEFAULT '',
     "phone" TEXT NOT NULL DEFAULT '',
     "address" TEXT NOT NULL DEFAULT '',
     "currency" TEXT NOT NULL DEFAULT 'INR',
     "autoConfirmInvoices" BOOLEAN NOT NULL DEFAULT true,
     "autoSendInvoices" BOOLEAN NOT NULL DEFAULT true,
     "overdueReminderDays" INTEGER NOT NULL DEFAULT 3,
-    "renewalReminderDays" INTEGER NOT NULL DEFAULT 7
+    "renewalReminderDays" INTEGER NOT NULL DEFAULT 7,
+    "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
 -- CreateTable
 CREATE TABLE "Sequence" (
-    "name" TEXT NOT NULL PRIMARY KEY,
-    "next" INTEGER NOT NULL DEFAULT 1
+    "id" TEXT NOT NULL PRIMARY KEY,
+    "orgId" TEXT NOT NULL DEFAULT '',
+    "name" TEXT NOT NULL,
+    "next" INTEGER NOT NULL DEFAULT 1,
+    CONSTRAINT "Sequence_orgId_fkey" FOREIGN KEY ("orgId") REFERENCES "Organization" ("id") ON DELETE CASCADE ON UPDATE CASCADE
 );
 
 -- CreateTable
 CREATE TABLE "Customer" (
+    "orgId" TEXT NOT NULL DEFAULT '',
     "id" TEXT NOT NULL PRIMARY KEY,
     "name" TEXT NOT NULL,
     "email" TEXT NOT NULL,
@@ -61,20 +69,24 @@ CREATE TABLE "Customer" (
     "taxId" TEXT NOT NULL DEFAULT '',
     "userId" TEXT,
     "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT "Customer_orgId_fkey" FOREIGN KEY ("orgId") REFERENCES "Organization" ("id") ON DELETE CASCADE ON UPDATE CASCADE,
     CONSTRAINT "Customer_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User" ("id") ON DELETE SET NULL ON UPDATE CASCADE
 );
 
 -- CreateTable
 CREATE TABLE "Tax" (
+    "orgId" TEXT NOT NULL DEFAULT '',
     "id" TEXT NOT NULL PRIMARY KEY,
     "name" TEXT NOT NULL,
     "rate" REAL NOT NULL,
     "priceIncluded" BOOLEAN NOT NULL DEFAULT false,
-    "active" BOOLEAN NOT NULL DEFAULT true
+    "active" BOOLEAN NOT NULL DEFAULT true,
+    CONSTRAINT "Tax_orgId_fkey" FOREIGN KEY ("orgId") REFERENCES "Organization" ("id") ON DELETE CASCADE ON UPDATE CASCADE
 );
 
 -- CreateTable
 CREATE TABLE "Product" (
+    "orgId" TEXT NOT NULL DEFAULT '',
     "id" TEXT NOT NULL PRIMARY KEY,
     "name" TEXT NOT NULL,
     "type" TEXT NOT NULL DEFAULT 'SERVICE',
@@ -83,14 +95,17 @@ CREATE TABLE "Product" (
     "notes" TEXT NOT NULL DEFAULT '',
     "recurring" BOOLEAN NOT NULL DEFAULT true,
     "active" BOOLEAN NOT NULL DEFAULT true,
-    "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
+    "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT "Product_orgId_fkey" FOREIGN KEY ("orgId") REFERENCES "Organization" ("id") ON DELETE CASCADE ON UPDATE CASCADE
 );
 
 -- CreateTable
 CREATE TABLE "Attribute" (
+    "orgId" TEXT NOT NULL DEFAULT '',
     "id" TEXT NOT NULL PRIMARY KEY,
     "name" TEXT NOT NULL,
     "productId" TEXT NOT NULL,
+    CONSTRAINT "Attribute_orgId_fkey" FOREIGN KEY ("orgId") REFERENCES "Organization" ("id") ON DELETE CASCADE ON UPDATE CASCADE,
     CONSTRAINT "Attribute_productId_fkey" FOREIGN KEY ("productId") REFERENCES "Product" ("id") ON DELETE CASCADE ON UPDATE CASCADE
 );
 
@@ -105,16 +120,19 @@ CREATE TABLE "AttributeValue" (
 
 -- CreateTable
 CREATE TABLE "ProductVariant" (
+    "orgId" TEXT NOT NULL DEFAULT '',
     "id" TEXT NOT NULL PRIMARY KEY,
     "productId" TEXT NOT NULL,
     "name" TEXT NOT NULL,
     "extraPrice" INTEGER NOT NULL DEFAULT 0,
     "active" BOOLEAN NOT NULL DEFAULT true,
+    CONSTRAINT "ProductVariant_orgId_fkey" FOREIGN KEY ("orgId") REFERENCES "Organization" ("id") ON DELETE CASCADE ON UPDATE CASCADE,
     CONSTRAINT "ProductVariant_productId_fkey" FOREIGN KEY ("productId") REFERENCES "Product" ("id") ON DELETE CASCADE ON UPDATE CASCADE
 );
 
 -- CreateTable
 CREATE TABLE "RecurringPlan" (
+    "orgId" TEXT NOT NULL DEFAULT '',
     "id" TEXT NOT NULL PRIMARY KEY,
     "name" TEXT NOT NULL,
     "price" INTEGER NOT NULL DEFAULT 0,
@@ -128,24 +146,29 @@ CREATE TABLE "RecurringPlan" (
     "pausable" BOOLEAN NOT NULL DEFAULT true,
     "renewable" BOOLEAN NOT NULL DEFAULT true,
     "active" BOOLEAN NOT NULL DEFAULT true,
-    "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
+    "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT "RecurringPlan_orgId_fkey" FOREIGN KEY ("orgId") REFERENCES "Organization" ("id") ON DELETE CASCADE ON UPDATE CASCADE
 );
 
 -- CreateTable
 CREATE TABLE "PaymentTerm" (
+    "orgId" TEXT NOT NULL DEFAULT '',
     "id" TEXT NOT NULL PRIMARY KEY,
     "name" TEXT NOT NULL,
-    "dueDays" INTEGER NOT NULL DEFAULT 0
+    "dueDays" INTEGER NOT NULL DEFAULT 0,
+    CONSTRAINT "PaymentTerm_orgId_fkey" FOREIGN KEY ("orgId") REFERENCES "Organization" ("id") ON DELETE CASCADE ON UPDATE CASCADE
 );
 
 -- CreateTable
 CREATE TABLE "QuotationTemplate" (
+    "orgId" TEXT NOT NULL DEFAULT '',
     "id" TEXT NOT NULL PRIMARY KEY,
     "name" TEXT NOT NULL,
     "planId" TEXT NOT NULL,
     "validityDays" INTEGER NOT NULL DEFAULT 30,
     "paymentTermId" TEXT,
     "note" TEXT NOT NULL DEFAULT '',
+    CONSTRAINT "QuotationTemplate_orgId_fkey" FOREIGN KEY ("orgId") REFERENCES "Organization" ("id") ON DELETE CASCADE ON UPDATE CASCADE,
     CONSTRAINT "QuotationTemplate_planId_fkey" FOREIGN KEY ("planId") REFERENCES "RecurringPlan" ("id") ON DELETE RESTRICT ON UPDATE CASCADE,
     CONSTRAINT "QuotationTemplate_paymentTermId_fkey" FOREIGN KEY ("paymentTermId") REFERENCES "PaymentTerm" ("id") ON DELETE SET NULL ON UPDATE CASCADE
 );
@@ -164,12 +187,15 @@ CREATE TABLE "TemplateLine" (
 
 -- CreateTable
 CREATE TABLE "CloseReason" (
+    "orgId" TEXT NOT NULL DEFAULT '',
     "id" TEXT NOT NULL PRIMARY KEY,
-    "name" TEXT NOT NULL
+    "name" TEXT NOT NULL,
+    CONSTRAINT "CloseReason_orgId_fkey" FOREIGN KEY ("orgId") REFERENCES "Organization" ("id") ON DELETE CASCADE ON UPDATE CASCADE
 );
 
 -- CreateTable
 CREATE TABLE "Subscription" (
+    "orgId" TEXT NOT NULL DEFAULT '',
     "id" TEXT NOT NULL PRIMARY KEY,
     "number" TEXT NOT NULL,
     "customerId" TEXT NOT NULL,
@@ -184,12 +210,14 @@ CREATE TABLE "Subscription" (
     "templateId" TEXT,
     "closeReasonId" TEXT,
     "closedAt" DATETIME,
+    "renewalReminderAt" DATETIME,
     "note" TEXT NOT NULL DEFAULT '',
     "untaxed" INTEGER NOT NULL DEFAULT 0,
     "taxTotal" INTEGER NOT NULL DEFAULT 0,
     "total" INTEGER NOT NULL DEFAULT 0,
     "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" DATETIME NOT NULL,
+    CONSTRAINT "Subscription_orgId_fkey" FOREIGN KEY ("orgId") REFERENCES "Organization" ("id") ON DELETE CASCADE ON UPDATE CASCADE,
     CONSTRAINT "Subscription_customerId_fkey" FOREIGN KEY ("customerId") REFERENCES "Customer" ("id") ON DELETE RESTRICT ON UPDATE CASCADE,
     CONSTRAINT "Subscription_planId_fkey" FOREIGN KEY ("planId") REFERENCES "RecurringPlan" ("id") ON DELETE RESTRICT ON UPDATE CASCADE,
     CONSTRAINT "Subscription_paymentTermId_fkey" FOREIGN KEY ("paymentTermId") REFERENCES "PaymentTerm" ("id") ON DELETE SET NULL ON UPDATE CASCADE,
@@ -217,6 +245,7 @@ CREATE TABLE "SubscriptionLine" (
 
 -- CreateTable
 CREATE TABLE "Discount" (
+    "orgId" TEXT NOT NULL DEFAULT '',
     "id" TEXT NOT NULL PRIMARY KEY,
     "name" TEXT NOT NULL,
     "type" TEXT NOT NULL DEFAULT 'PERCENT',
@@ -229,11 +258,13 @@ CREATE TABLE "Discount" (
     "usageLimit" INTEGER,
     "usedCount" INTEGER NOT NULL DEFAULT 0,
     "active" BOOLEAN NOT NULL DEFAULT true,
-    "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
+    "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT "Discount_orgId_fkey" FOREIGN KEY ("orgId") REFERENCES "Organization" ("id") ON DELETE CASCADE ON UPDATE CASCADE
 );
 
 -- CreateTable
 CREATE TABLE "Invoice" (
+    "orgId" TEXT NOT NULL DEFAULT '',
     "id" TEXT NOT NULL PRIMARY KEY,
     "number" TEXT,
     "billingKey" TEXT,
@@ -252,6 +283,7 @@ CREATE TABLE "Invoice" (
     "sentAt" DATETIME,
     "reminderSentAt" DATETIME,
     "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT "Invoice_orgId_fkey" FOREIGN KEY ("orgId") REFERENCES "Organization" ("id") ON DELETE CASCADE ON UPDATE CASCADE,
     CONSTRAINT "Invoice_subscriptionId_fkey" FOREIGN KEY ("subscriptionId") REFERENCES "Subscription" ("id") ON DELETE SET NULL ON UPDATE CASCADE,
     CONSTRAINT "Invoice_customerId_fkey" FOREIGN KEY ("customerId") REFERENCES "Customer" ("id") ON DELETE RESTRICT ON UPDATE CASCADE
 );
@@ -264,18 +296,19 @@ CREATE TABLE "InvoiceLine" (
     "description" TEXT NOT NULL,
     "quantity" INTEGER NOT NULL DEFAULT 1,
     "unitPrice" INTEGER NOT NULL,
+    "discountAmount" INTEGER NOT NULL DEFAULT 0,
     "subtotal" INTEGER NOT NULL,
     "taxAmount" INTEGER NOT NULL DEFAULT 0,
     "total" INTEGER NOT NULL,
     "taxLabel" TEXT NOT NULL DEFAULT '',
     "discountId" TEXT,
-    "isDiscount" BOOLEAN NOT NULL DEFAULT false,
     CONSTRAINT "InvoiceLine_invoiceId_fkey" FOREIGN KEY ("invoiceId") REFERENCES "Invoice" ("id") ON DELETE CASCADE ON UPDATE CASCADE,
     CONSTRAINT "InvoiceLine_discountId_fkey" FOREIGN KEY ("discountId") REFERENCES "Discount" ("id") ON DELETE SET NULL ON UPDATE CASCADE
 );
 
 -- CreateTable
 CREATE TABLE "Payment" (
+    "orgId" TEXT NOT NULL DEFAULT '',
     "id" TEXT NOT NULL PRIMARY KEY,
     "number" TEXT NOT NULL,
     "invoiceId" TEXT NOT NULL,
@@ -286,12 +319,14 @@ CREATE TABLE "Payment" (
     "reference" TEXT NOT NULL DEFAULT '',
     "createdById" TEXT,
     "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT "Payment_orgId_fkey" FOREIGN KEY ("orgId") REFERENCES "Organization" ("id") ON DELETE CASCADE ON UPDATE CASCADE,
     CONSTRAINT "Payment_invoiceId_fkey" FOREIGN KEY ("invoiceId") REFERENCES "Invoice" ("id") ON DELETE RESTRICT ON UPDATE CASCADE,
     CONSTRAINT "Payment_createdById_fkey" FOREIGN KEY ("createdById") REFERENCES "User" ("id") ON DELETE SET NULL ON UPDATE CASCADE
 );
 
 -- CreateTable
 CREATE TABLE "Activity" (
+    "orgId" TEXT NOT NULL DEFAULT '',
     "id" TEXT NOT NULL PRIMARY KEY,
     "entityType" TEXT NOT NULL,
     "entityId" TEXT NOT NULL,
@@ -299,11 +334,13 @@ CREATE TABLE "Activity" (
     "isNote" BOOLEAN NOT NULL DEFAULT false,
     "userId" TEXT,
     "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT "Activity_orgId_fkey" FOREIGN KEY ("orgId") REFERENCES "Organization" ("id") ON DELETE CASCADE ON UPDATE CASCADE,
     CONSTRAINT "Activity_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User" ("id") ON DELETE SET NULL ON UPDATE CASCADE
 );
 
 -- CreateTable
 CREATE TABLE "EmailLog" (
+    "orgId" TEXT NOT NULL DEFAULT '',
     "id" TEXT NOT NULL PRIMARY KEY,
     "to" TEXT NOT NULL,
     "subject" TEXT NOT NULL,
@@ -311,7 +348,8 @@ CREATE TABLE "EmailLog" (
     "error" TEXT NOT NULL DEFAULT '',
     "entityType" TEXT,
     "entityId" TEXT,
-    "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
+    "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT "EmailLog_orgId_fkey" FOREIGN KEY ("orgId") REFERENCES "Organization" ("id") ON DELETE CASCADE ON UPDATE CASCADE
 );
 
 -- CreateTable
@@ -358,10 +396,19 @@ CREATE TABLE "_DiscountToSubscription" (
 CREATE UNIQUE INDEX "User_email_key" ON "User"("email");
 
 -- CreateIndex
+CREATE INDEX "User_orgId_idx" ON "User"("orgId");
+
+-- CreateIndex
 CREATE INDEX "Session_userId_idx" ON "Session"("userId");
 
 -- CreateIndex
 CREATE UNIQUE INDEX "PasswordResetToken_tokenHash_key" ON "PasswordResetToken"("tokenHash");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "Organization_slug_key" ON "Organization"("slug");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "Sequence_orgId_name_key" ON "Sequence"("orgId", "name");
 
 -- CreateIndex
 CREATE UNIQUE INDEX "Customer_userId_key" ON "Customer"("userId");
@@ -373,7 +420,31 @@ CREATE INDEX "Customer_email_idx" ON "Customer"("email");
 CREATE INDEX "Customer_name_idx" ON "Customer"("name");
 
 -- CreateIndex
-CREATE UNIQUE INDEX "Subscription_number_key" ON "Subscription"("number");
+CREATE INDEX "Customer_orgId_idx" ON "Customer"("orgId");
+
+-- CreateIndex
+CREATE INDEX "Tax_orgId_idx" ON "Tax"("orgId");
+
+-- CreateIndex
+CREATE INDEX "Product_orgId_idx" ON "Product"("orgId");
+
+-- CreateIndex
+CREATE INDEX "Attribute_orgId_idx" ON "Attribute"("orgId");
+
+-- CreateIndex
+CREATE INDEX "ProductVariant_orgId_idx" ON "ProductVariant"("orgId");
+
+-- CreateIndex
+CREATE INDEX "RecurringPlan_orgId_idx" ON "RecurringPlan"("orgId");
+
+-- CreateIndex
+CREATE INDEX "PaymentTerm_orgId_idx" ON "PaymentTerm"("orgId");
+
+-- CreateIndex
+CREATE INDEX "QuotationTemplate_orgId_idx" ON "QuotationTemplate"("orgId");
+
+-- CreateIndex
+CREATE INDEX "CloseReason_orgId_idx" ON "CloseReason"("orgId");
 
 -- CreateIndex
 CREATE INDEX "Subscription_status_idx" ON "Subscription"("status");
@@ -388,10 +459,16 @@ CREATE INDEX "Subscription_status_nextInvoiceDate_idx" ON "Subscription"("status
 CREATE INDEX "Subscription_createdAt_idx" ON "Subscription"("createdAt");
 
 -- CreateIndex
+CREATE INDEX "Subscription_orgId_idx" ON "Subscription"("orgId");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "Subscription_orgId_number_key" ON "Subscription"("orgId", "number");
+
+-- CreateIndex
 CREATE INDEX "SubscriptionLine_subscriptionId_idx" ON "SubscriptionLine"("subscriptionId");
 
 -- CreateIndex
-CREATE UNIQUE INDEX "Invoice_number_key" ON "Invoice"("number");
+CREATE INDEX "Discount_orgId_idx" ON "Discount"("orgId");
 
 -- CreateIndex
 CREATE UNIQUE INDEX "Invoice_billingKey_key" ON "Invoice"("billingKey");
@@ -409,10 +486,13 @@ CREATE INDEX "Invoice_subscriptionId_idx" ON "Invoice"("subscriptionId");
 CREATE INDEX "Invoice_invoiceDate_idx" ON "Invoice"("invoiceDate");
 
 -- CreateIndex
-CREATE INDEX "InvoiceLine_invoiceId_idx" ON "InvoiceLine"("invoiceId");
+CREATE INDEX "Invoice_orgId_idx" ON "Invoice"("orgId");
 
 -- CreateIndex
-CREATE UNIQUE INDEX "Payment_number_key" ON "Payment"("number");
+CREATE UNIQUE INDEX "Invoice_orgId_number_key" ON "Invoice"("orgId", "number");
+
+-- CreateIndex
+CREATE INDEX "InvoiceLine_invoiceId_idx" ON "InvoiceLine"("invoiceId");
 
 -- CreateIndex
 CREATE INDEX "Payment_invoiceId_idx" ON "Payment"("invoiceId");
@@ -421,10 +501,22 @@ CREATE INDEX "Payment_invoiceId_idx" ON "Payment"("invoiceId");
 CREATE INDEX "Payment_date_idx" ON "Payment"("date");
 
 -- CreateIndex
+CREATE INDEX "Payment_orgId_idx" ON "Payment"("orgId");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "Payment_orgId_number_key" ON "Payment"("orgId", "number");
+
+-- CreateIndex
 CREATE INDEX "Activity_entityType_entityId_idx" ON "Activity"("entityType", "entityId");
 
 -- CreateIndex
+CREATE INDEX "Activity_orgId_idx" ON "Activity"("orgId");
+
+-- CreateIndex
 CREATE INDEX "EmailLog_createdAt_idx" ON "EmailLog"("createdAt");
+
+-- CreateIndex
+CREATE INDEX "EmailLog_orgId_idx" ON "EmailLog"("orgId");
 
 -- CreateIndex
 CREATE UNIQUE INDEX "_ProductToTax_AB_unique" ON "_ProductToTax"("A", "B");

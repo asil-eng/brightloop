@@ -1,9 +1,9 @@
 import "server-only";
-import { db } from "./db";
+import type { Db } from "./db";
 import { UserError } from "./action";
 import type { CatalogProduct, CatalogTax, EditorLine } from "@/components/line-editor";
 
-export async function loadCatalog(): Promise<{ products: CatalogProduct[]; taxes: CatalogTax[] }> {
+export async function loadCatalog(db: Db): Promise<{ products: CatalogProduct[]; taxes: CatalogTax[] }> {
   const [products, taxes] = await Promise.all([
     db.product.findMany({
       where: { active: true, recurring: true },
@@ -28,7 +28,7 @@ export async function loadCatalog(): Promise<{ products: CatalogProduct[]; taxes
 export type ParsedLine = EditorLine;
 
 /** Validate the JSON produced by <LineEditor>. Product lines must meet the plan's minimum quantity. */
-export async function parseLines(raw: string, opts: { minQuantity?: number; allowEmpty?: boolean } = {}): Promise<ParsedLine[]> {
+export async function parseLines(db: Db, raw: string, opts: { minQuantity?: number; allowEmpty?: boolean } = {}): Promise<ParsedLine[]> {
   let input: unknown;
   try {
     input = JSON.parse(raw || "[]");

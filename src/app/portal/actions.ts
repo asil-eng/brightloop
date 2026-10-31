@@ -2,7 +2,6 @@
 
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
-import { db } from "@/lib/db";
 import { hashPassword, passwordError, requireCustomer, verifyPassword } from "@/lib/auth";
 import { UserError, int, required, safeAction, str } from "@/lib/action";
 import { registerPayment, recomputeSubscription } from "@/lib/billing";
@@ -13,37 +12,38 @@ import { formatMoney } from "@/lib/money";
 /** Load a subscription only if it belongs to the logged-in customer. */
 async function ownSubscription(id: string) {
   const user = await requireCustomer();
+  const { db } = user;
   const sub = await db.subscription.findFirst({ where: { id, customerId: user.customer.id }, include: { plan: true } });
   if (!sub) throw new UserError("Subscription not found.");
-  return { user, sub };
+  return { user, sub, db };
 }
 
 export const portalSubscriptionAction = safeAction(async (data) => {
   const id = required(data, "id", "Subscription");
   const op = required(data, "op", "Action");
-  const { user, sub } = await ownSubscription(id);
+  const { user, sub, db } = await ownSubscription(id);
   const actor = { id: user.id, role: user.role };
   let ok = "";
   switch (op) {
     case "accept":
       if (sub.status !== "QUOTATION") throw new UserError("This quotation can no longer be accepted.");
-      await confirmSubscription(id, actor);
+      await confirmSubscription(db, id, actor);
       ok = "Thank you! Your subscription is confirmed.";
       break;
     case "pause":
-      await pauseSubscription(id, actor);
+      await pauseSubscription(db, id, actor);
       ok = "Your subscription is paused.";
       break;
     case "resume":
-      await resumeSubscription(id, actor);
+      await resumeSubscription(db, id, actor);
       ok = "Your subscription is active again.";
       break;
     case "renew":
-      await renew(id, actor);
+      await renew(db, id, actor);
       ok = "Your subscription is renewed.";
       break;
     case "close":
-      await closeSubscription(id, actor, str(data, "reasonId"));
+      await closeSubscription(db, id, actor, str(data, "reasonId"));
       ok = sub.status === "QUOTATION" ? "Quotation declined." : "Your subscription is closed.";
       break;
     default:
@@ -57,7 +57,7 @@ export const portalSubscriptionAction = safeAction(async (data) => {
 export const toggleAddon = safeAction(async (data) => {
   const id = required(data, "id", "Subscription");
   const productId = required(data, "productId", "Add-on");
-  const { user, sub } = await ownSubscription(id);
+  const { user, sub, db } = await ownSubscription(id);
   if (!["CONFIRMED", "ACTIVE", "PAUSED"].includes(sub.status)) throw new UserError("Add-ons can only be changed on a running subscription.");
   const product = await db.product.findFirst({ where: { id: productId, type: "ADDON", active: true }, include: { taxes: true } });
   if (!product) throw new UserError("This add-on isn't available.");
@@ -65,7 +65,7 @@ export const toggleAddon = safeAction(async (data) => {
   const existing = await db.subscriptionLine.findFirst({ where: { subscriptionId: id, productId } });
   if (existing) {
     await db.subscriptionLine.delete({ where: { id: existing.id } });
-    await logActivity("subscription", id, `Add-on "${product.name}" switched off by the customer.`, user.id);
+    await logActivity(db, "subscription", id, `Add-on "${product.name}" switched off by the customer.`, user.id);
   } else {
     const quantity = Math.max(1, int(data, "quantity", 1), sub.plan.minQuantity);
     await db.subscriptionLine.create({
@@ -78,9 +78,9 @@ export const toggleAddon = safeAction(async (data) => {
         taxes: { connect: product.taxes.map((t) => ({ id: t.id })) },
       },
     });
-    await logActivity("subscription", id, `Add-on "${product.name}" (×${quantity}) switched on by the customer.`, user.id);
+    await logActivity(db, "subscription", id, `Add-on "${product.name}" (×${quantity}) switched on by the customer.`, user.id);
   }
-  await recomputeSubscription(id);
+  await recomputeSubscription(db, id);
   revalidatePath(`/portal/subscriptions/${id}`);
   return { ok: existing ? `${product.name} switched off. It won't be billed from your next invoice.` : `${product.name} switched on. It will appear on your next invoice.` };
 });
@@ -92,6 +92,7 @@ export const toggleAddon = safeAction(async (data) => {
  */
 export const payOnline = safeAction(async (data) => {
   const user = await requireCustomer();
+  const { db } = user;
   const invoiceId = required(data, "invoiceId", "Invoice");
   const invoice = await db.invoice.findFirst({ where: { id: invoiceId, customerId: user.customer.id } });
   if (!invoice) throw new UserError("Invoice not found.");
@@ -113,7 +114,7 @@ export const payOnline = safeAction(async (data) => {
     reference = `DEMO-UPI-${Date.now().toString(36).toUpperCase()}`;
   }
 
-  await registerPayment({
+  await registerPayment(db, {
     invoiceId,
     amount: due,
     method,
@@ -127,6 +128,7 @@ export const payOnline = safeAction(async (data) => {
 
 export const updateProfile = safeAction(async (data) => {
   const user = await requireCustomer();
+  const { db } = user;
   const name = required(data, "name", "Name");
   await db.$transaction([
     db.customer.update({
@@ -141,6 +143,7 @@ export const updateProfile = safeAction(async (data) => {
 
 export const changePassword = safeAction(async (data) => {
   const user = await requireCustomer();
+  const { db } = user;
   const current = required(data, "current", "Current password");
   const password = required(data, "password", "New password");
   if (!user.passwordHash || !(await verifyPassword(current, user.passwordHash))) throw new UserError("Your current password is incorrect.");

@@ -1,4 +1,3 @@
-import { db } from "@/lib/db";
 import { requireAdmin } from "@/lib/auth";
 import { formatDateTime } from "@/lib/dates";
 import { Badge, Card, Field, PageHeader } from "@/components/ui";
@@ -9,8 +8,9 @@ export const metadata = { title: "Settings" };
 
 export default async function SettingsPage() {
   const me = await requireAdmin();
+  const { db } = me;
   const [company, taxes, terms, reasons, staff, emails] = await Promise.all([
-    db.company.findUnique({ where: { id: 1 } }),
+    db.organization.findFirst(),
     db.tax.findMany({ orderBy: { name: "asc" } }),
     db.paymentTerm.findMany({ orderBy: { dueDays: "asc" } }),
     db.closeReason.findMany({ orderBy: { name: "asc" } }),

@@ -1,6 +1,5 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { db } from "@/lib/db";
 import { requireBackoffice } from "@/lib/auth";
 import { loadCatalog } from "@/lib/catalog";
 import { formatMoney } from "@/lib/money";
@@ -25,7 +24,7 @@ function ActionButton({ id, op, label, variant = "secondary", confirm }: { id: s
 }
 
 export default async function SubscriptionPage({ params }: { params: Promise<{ id: string }> }) {
-  await requireBackoffice();
+  const { db } = await requireBackoffice();
   const { id } = await params;
   const sub = await db.subscription.findUnique({
     where: { id },
@@ -42,14 +41,14 @@ export default async function SubscriptionPage({ params }: { params: Promise<{ i
   if (!sub) notFound();
 
   const [{ products, taxes }, customers, plans, terms, reasons, invoices, invoiceAgg, discountRules] = await Promise.all([
-    loadCatalog(),
+    loadCatalog(db),
     db.customer.findMany({ select: { id: true, name: true, company: true }, orderBy: { name: "asc" } }),
     db.recurringPlan.findMany({ orderBy: { name: "asc" } }),
     db.paymentTerm.findMany({ orderBy: { dueDays: "asc" } }),
     db.closeReason.findMany({ orderBy: { name: "asc" } }),
     db.invoice.findMany({ where: { subscriptionId: id }, orderBy: { invoiceDate: "desc" }, take: 8 }),
     db.invoice.aggregate({ where: { subscriptionId: id, status: { not: "CANCELLED" } }, _count: true, _sum: { total: true, amountPaid: true } }),
-    loadDiscountRules(),
+    loadDiscountRules(db),
   ]);
 
   const today = startOfDay();

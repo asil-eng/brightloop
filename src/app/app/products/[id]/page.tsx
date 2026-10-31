@@ -1,5 +1,4 @@
 import { notFound } from "next/navigation";
-import { db } from "@/lib/db";
 import { requireBackoffice } from "@/lib/auth";
 import { formatMoney, toMajor } from "@/lib/money";
 import { Badge, Card, PageHeader } from "@/components/ui";
@@ -9,6 +8,7 @@ import { deleteAttribute, saveAttribute, updateProduct } from "../actions";
 
 export default async function ProductPage({ params }: { params: Promise<{ id: string }> }) {
   const user = await requireBackoffice();
+  const { db } = user;
   const isAdmin = user.role === "ADMIN";
   const { id } = await params;
   const product = await db.product.findUnique({

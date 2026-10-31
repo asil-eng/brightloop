@@ -1,11 +1,11 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import type { Db } from "@/lib/db";
 import { redirect } from "next/navigation";
 import type { ProductType } from "@prisma/client";
-import { db } from "@/lib/db";
 import { requireAdmin } from "@/lib/auth";
-import { UserError, bool, required, safeAction, str } from "@/lib/action";
+import { UserError, bool, owned, required, safeAction, str } from "@/lib/action";
 import { toMinor } from "@/lib/money";
 
 const TYPES: ProductType[] = ["SERVICE", "ADDON", "GOODS"];
@@ -31,23 +31,25 @@ function readProduct(data: FormData) {
 }
 
 export const createProduct = safeAction(async (data) => {
-  await requireAdmin();
+  const { db } = await requireAdmin();
   const { taxIds, ...p } = readProduct(data);
-  const product = await db.product.create({ data: { ...p, taxes: { connect: taxIds.map((id) => ({ id })) } } });
+  const taxes = await owned(db.tax, taxIds);
+  const product = await db.product.create({ data: { ...p, taxes: { connect: taxes.map((id) => ({ id })) } } });
   redirect(`/app/products/${product.id}`);
 });
 
 export const updateProduct = safeAction(async (data) => {
-  await requireAdmin();
+  const { db } = await requireAdmin();
   const id = required(data, "id", "Product");
   const { taxIds, ...p } = readProduct(data);
-  await db.product.update({ where: { id }, data: { ...p, taxes: { set: taxIds.map((id) => ({ id })) } } });
+  const taxes = await owned(db.tax, taxIds);
+  await db.product.update({ where: { id }, data: { ...p, taxes: { set: taxes.map((id) => ({ id })) } } });
   revalidatePath(`/app/products/${id}`);
   return { ok: "Product saved." };
 });
 
 /** Rebuild the variant list as every combination of the product's attribute values. */
-async function regenerateVariants(productId: string) {
+async function regenerateVariants(db: Db, productId: string) {
   const attributes = await db.attribute.findMany({ where: { productId }, include: { values: true }, orderBy: { id: "asc" } });
   let combos: { id: string; name: string; label: string; extra: number }[][] = [[]];
   for (const a of attributes) {
@@ -101,8 +103,9 @@ function parseValues(text: string) {
 }
 
 export const saveAttribute = safeAction(async (data) => {
-  await requireAdmin();
+  const { db } = await requireAdmin();
   const productId = required(data, "productId", "Product");
+  await db.product.findUniqueOrThrow({ where: { id: productId } }); // must be this company's product
   const name = required(data, "name", "Attribute name");
   const values = parseValues(required(data, "values", "Values"));
   const attributeId = str(data, "attributeId");
@@ -128,13 +131,13 @@ export const saveAttribute = safeAction(async (data) => {
   } else {
     await db.attribute.create({ data: { name, productId, values: { create: values } } });
   }
-  await regenerateVariants(productId);
+  await regenerateVariants(db, productId);
   revalidatePath(`/app/products/${productId}`);
   return { ok: "Attribute saved and variants updated." };
 });
 
 export const deleteAttribute = safeAction(async (data) => {
-  await requireAdmin();
+  const { db } = await requireAdmin();
   const attributeId = required(data, "attributeId", "Attribute");
   const attr = await db.attribute.findUniqueOrThrow({ where: { id: attributeId }, include: { values: true } });
   for (const val of attr.values) {
@@ -142,7 +145,7 @@ export const deleteAttribute = safeAction(async (data) => {
     for (const v of vs) await db.productVariant.update({ where: { id: v.id }, data: { values: { disconnect: { id: val.id } } } });
   }
   await db.attribute.delete({ where: { id: attributeId } });
-  await regenerateVariants(attr.productId);
+  await regenerateVariants(db, attr.productId);
   revalidatePath(`/app/products/${attr.productId}`);
   return { ok: "Attribute removed." };
 });

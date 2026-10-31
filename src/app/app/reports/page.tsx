@@ -1,6 +1,5 @@
 import Link from "next/link";
 import type { Prisma } from "@prisma/client";
-import { db } from "@/lib/db";
 import { requireBackoffice } from "@/lib/auth";
 import { headline, monthlyRevenue } from "@/lib/metrics";
 import { formatMoney } from "@/lib/money";
@@ -37,7 +36,8 @@ export default async function ReportsPage({ searchParams }: { searchParams: Sear
 }
 
 async function Summary() {
-  const [h, months] = await Promise.all([headline(), monthlyRevenue(12)]);
+  const { db } = await requireBackoffice();
+  const [h, months] = await Promise.all([headline(db), monthlyRevenue(db, 12)]);
   const totalCollected = months.reduce((s, m) => s + m.collected, 0);
   const totalInvoiced = months.reduce((s, m) => s + m.invoiced, 0);
   return (
@@ -72,6 +72,7 @@ async function Summary() {
 }
 
 async function Subscriptions({ sp }: { sp: Record<string, string | string[] | undefined> }) {
+  const { db } = await requireBackoffice();
   const status = param(sp, "status");
   const planId = param(sp, "planId");
   const where: Prisma.SubscriptionWhereInput = {
@@ -120,6 +121,7 @@ async function Subscriptions({ sp }: { sp: Record<string, string | string[] | un
 }
 
 async function Revenue({ sp }: { sp: Record<string, string | string[] | undefined> }) {
+  const { db } = await requireBackoffice();
   const today = startOfDay();
   const from = parseInputDate(param(sp, "from")) ?? new Date(today.getFullYear(), today.getMonth() - 2, 1);
   const to = parseInputDate(param(sp, "to")) ?? today;
@@ -157,6 +159,7 @@ async function Revenue({ sp }: { sp: Record<string, string | string[] | undefine
 }
 
 async function Overdue({ sp }: { sp: Record<string, string | string[] | undefined> }) {
+  const { db } = await requireBackoffice();
   const today = startOfDay();
   const q = param(sp, "q");
   const where: Prisma.InvoiceWhereInput = { status: "CONFIRMED", dueDate: { lt: today }, ...(q && { customer: { name: { contains: q } } }) };
